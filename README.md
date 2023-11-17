@@ -1,6 +1,8 @@
 gensim – Topic Modelling in Python
 ==================================
 
+This is standard gensim 3.8.3 but with a little hack to get the install to work with poetry.
+
 <!--
 The following image URLs are obfuscated = proxied and cached through
 Google because of Github's proxying issues. See:
