@@ -348,7 +348,7 @@ if PY2:
     SCIPY_STR = 'scipy <= 1.2.3'
     SO_STR = 'smart_open >= 1.8.1, < 1.11'
 else:
-    NUMPY_STR = 'numpy >= 1.11.3'
+    NUMPY_STR = 'numpy >= 1.11.3, < 2.0'
     SCIPY_STR = 'scipy >= 0.18.1'
     SO_STR = 'smart_open >= 1.8.1'
 
