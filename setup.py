@@ -17,7 +17,8 @@ import os
 import platform
 import shutil
 import sys
-from setuptools import setup, find_packages, Extension
+
+from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
 
 PY2 = sys.version_info[:2] == (2, 7)
@@ -101,6 +102,7 @@ class CustomBuildExt(build_ext):
     We need this in order to use numpy and Cython in this script without
     importing them at module level, because they may not be available yet.
     """
+
     #
     # http://stackoverflow.com/questions/19919905/how-to-bootstrap-numpy-installation-in-setup-py
     #
@@ -114,15 +116,18 @@ class CustomBuildExt(build_ext):
             try:
                 # For python 3
                 import builtins
+
                 builtins.__NUMPY_SETUP__ = False
             except:
-                print("Skipping numpy hack; if gemsum installation fails, try installing numpy first")
+                print('Skipping numpy hack; if gemsum installation fails, try installing numpy first')
 
         import numpy
+
         self.include_dirs.append(numpy.get_include())
 
         if need_cython():
             import Cython.Build
+
             Cython.Build.cythonize(list(make_c_ext(use_cython=True)))
             Cython.Build.cythonize(list(make_cpp_ext(use_cython=True)))
 
@@ -139,11 +144,7 @@ class CleanExt(distutils.cmd.Command):
 
     def run(self):
         for root, dirs, files in os.walk('gensim'):
-            files = [
-                os.path.join(root, f)
-                for f in files
-                if os.path.splitext(f)[1] in ('.c', '.cpp', '.so')
-            ]
+            files = [os.path.join(root, f) for f in files if os.path.splitext(f)[1] in ('.c', '.cpp', '.so')]
             for f in files:
                 self.announce('removing %s' % f, level=distutils.log.INFO)
                 os.unlink(f)
@@ -158,10 +159,11 @@ cmdclass = {'build_ext': CustomBuildExt, 'clean_ext': CleanExt}
 WHEELHOUSE_UPLOADER_COMMANDS = {'fetch_artifacts', 'upload_all'}
 if WHEELHOUSE_UPLOADER_COMMANDS.intersection(sys.argv):
     import wheelhouse_uploader.cmd
+
     cmdclass.update(vars(wheelhouse_uploader.cmd))
 
 
-LONG_DESCRIPTION = u"""
+LONG_DESCRIPTION = """
 ==============================================
 gensim -- Topic Modelling in Python
 ==============================================
@@ -301,29 +303,33 @@ win_testenv = [
 #
 #   https://packaging.python.org/discussions/install-requires-vs-requirements/
 #
-docs_testenv = win_testenv + distributed_env + [
-    'sphinx <= 2.4.4',  # avoid `sphinx >= 3.0` that breaks the build
-    'sphinx-gallery',
-    'sphinxcontrib.programoutput',
-    'sphinxcontrib-napoleon',
-    'matplotlib',  # expected by sphinx-gallery
-    'plotly',
-    #
-    # Pattern is a PITA to install, it requires mysqlclient, which in turn
-    # requires MySQL dev tools be installed. We don't need it for building
-    # documentation.
-    #
-    # 'Pattern==3.6',  # Need 3.6 or later for Py3 support
-    'memory_profiler',
-    'annoy',
-    'Pyro4',
-    'scikit-learn',
-    'nltk',
-    'testfixtures',
-    'statsmodels',
-    'pyemd',
-    'pandas',
-]
+docs_testenv = (
+    win_testenv
+    + distributed_env
+    + [
+        'sphinx <= 2.4.4',  # avoid `sphinx >= 3.0` that breaks the build
+        'sphinx-gallery',
+        'sphinxcontrib.programoutput',
+        'sphinxcontrib-napoleon',
+        'matplotlib',  # expected by sphinx-gallery
+        'plotly',
+        #
+        # Pattern is a PITA to install, it requires mysqlclient, which in turn
+        # requires MySQL dev tools be installed. We don't need it for building
+        # documentation.
+        #
+        # 'Pattern==3.6',  # Need 3.6 or later for Py3 support
+        'memory_profiler',
+        'annoy',
+        'Pyro4',
+        'scikit-learn',
+        'nltk',
+        'testfixtures',
+        'statsmodels',
+        'pyemd',
+        'pandas',
+    ]
+)
 
 # Add additional requirements for testing on Linux. We skip some tests on Windows,
 # because the libraries below are too tricky to install there.
@@ -349,7 +355,7 @@ if PY2:
     SO_STR = 'smart_open >= 1.8.1, < 1.11'
 else:
     NUMPY_STR = 'numpy >= 1.11.3, < 2.0'
-    SCIPY_STR = 'scipy >= 0.18.1'
+    SCIPY_STR = 'scipy >= 0.18.1, < 1.13'
     SO_STR = 'smart_open >= 1.8.1'
 
 #
@@ -377,28 +383,20 @@ setup(
     version='3.8.3',
     description='Python framework for fast Vector Space Modelling',
     long_description=LONG_DESCRIPTION,
-
     ext_modules=ext_modules,
     cmdclass=cmdclass,
     packages=find_packages(),
-
-    author=u'Radim Rehurek',
+    author='Radim Rehurek',
     author_email='me@radimrehurek.com',
-
     url='http://radimrehurek.com/gensim',
     download_url='http://pypi.python.org/pypi/gensim',
-
     license='LGPLv2.1',
-
     keywords='Singular Value Decomposition, SVD, Latent Semantic Indexing, '
-        'LSA, LSI, Latent Dirichlet Allocation, LDA, '
-        'Hierarchical Dirichlet Process, HDP, Random Projections, '
-        'TFIDF, word2vec',
-
+    'LSA, LSI, Latent Dirichlet Allocation, LDA, '
+    'Hierarchical Dirichlet Process, HDP, Random Projections, '
+    'TFIDF, word2vec',
     platforms='any',
-
     zip_safe=False,
-
     classifiers=[  # from http://pypi.python.org/pypi?%3Aaction=list_classifiers
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
@@ -414,8 +412,7 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Text Processing :: Linguistic',
     ],
-
-    test_suite="gensim.test",
+    test_suite='gensim.test',
     setup_requires=setup_requires,
     install_requires=install_requires,
     tests_require=linux_testenv,
@@ -425,6 +422,5 @@ setup(
         'test': linux_testenv,
         'docs': docs_testenv,
     },
-
     include_package_data=True,
 )
