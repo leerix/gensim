@@ -283,7 +283,7 @@ win_testenv = [
     'nmslib',
     'pyemd',
     'testfixtures',
-    'Morfessor==2.0.2a4',
+    'Morfessor==2.0.6',  # 2.0.2a4's bundled ez_setup.py fails to build on Python 3.6+ (TarFile.chown signature change)
     'python-Levenshtein >= 0.10.2',
     'visdom >= 0.1.8, != 0.1.8.7',
     'scikit-learn',
@@ -304,10 +304,34 @@ win_testenv = [
 #   https://packaging.python.org/discussions/install-requires-vs-requirements/
 #
 docs_testenv = (
-    win_testenv
+    # visdom is only needed at runtime for the visdom callback logger (imported
+    # lazily in gensim/models/callbacks.py), not for building the docs. Its latest
+    # release (0.2.4) fails to build under PEP517 isolation because its setup.py
+    # imports pkg_resources, so exclude it from the docs environment. scikit-learn
+    # is re-added below with a version pin (see note there).
+    [req for req in win_testenv if not req.startswith(('visdom', 'scikit-learn'))]
     + distributed_env
     + [
         'sphinx <= 2.4.4',  # avoid `sphinx >= 3.0` that breaks the build
+        # Sphinx 2.4.4 predates several breaking changes in its transitive
+        # dependencies. Without these pins, pip resolves to modern versions that
+        # are incompatible with Sphinx 2.x:
+        #   - Jinja2 >= 3.1 removed `environmentfilter` (ImportError on startup)
+        #   - MarkupSafe >= 2.1 removed `soft_unicode`
+        #   - docutils >= 0.17 registers its own `meta` node (fatal under -W) and
+        #     tightens RST parsing, surfacing pre-existing docstring warnings
+        #   - the split-out sphinxcontrib-* helpers and alabaster now require
+        #     Sphinx >= 5 / >= 3.4 respectively
+        'jinja2 < 3.0',
+        'markupsafe < 2.1',
+        'docutils == 0.16',
+        'alabaster == 0.7.12',
+        'sphinxcontrib-applehelp == 1.0.2',
+        'sphinxcontrib-devhelp == 1.0.2',
+        'sphinxcontrib-htmlhelp == 1.0.3',
+        'sphinxcontrib-jsmath == 1.0.1',
+        'sphinxcontrib-qthelp == 1.0.3',
+        'sphinxcontrib-serializinghtml == 1.1.4',
         'sphinx-gallery',
         'sphinxcontrib.programoutput',
         'sphinxcontrib-napoleon',
@@ -322,7 +346,11 @@ docs_testenv = (
         'memory_profiler',
         'annoy',
         'Pyro4',
-        'scikit-learn',
+        # scikit-learn >= 1.2 injects set_output/metadata-routing methods into
+        # the estimators subclassed by gensim.sklearn_api. Their docstrings
+        # reference scikit-learn's own doc labels, which autodoc reports as
+        # "undefined label" warnings (fatal under sphinx's -W). Pin below 1.2.
+        'scikit-learn < 1.2',
         'nltk',
         'testfixtures',
         'statsmodels',

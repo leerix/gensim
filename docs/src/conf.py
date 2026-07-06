@@ -278,7 +278,12 @@ import sphinx_gallery.sorting
 sphinx_gallery_conf = {
     'examples_dirs': 'gallery',   # path to your example scripts
     'gallery_dirs': 'auto_examples',  # path where to save gallery generated examples
-    'show_memory': True,
+    # show_memory relies on memory_profiler + psutil, which raises
+    # psutil.ZombieProcess on modern macOS during gallery init. Disable it.
+    'show_memory': False,
+    # Render the gallery pages from source without executing the run_*.py
+    # examples (which would train models and download corpora over the network).
+    'plot_gallery': False,
     'filename_pattern': 'run',
     'subsection_order': sphinx_gallery.sorting.ExplicitOrder(
         [
