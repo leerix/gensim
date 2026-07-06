@@ -1,0 +1,39 @@
+[tool.ruff]
+line-length = 160
+
+
+[tool.ruff.format]
+quote-style = "single"
+
+
+[tool.ruff.lint]
+# B: flake8-bugbear
+# E: pycodestyle
+# F: Pyflakes
+# I: isort
+# ICN: import convention
+# S: bandit
+# SIM: flake8-simplify
+# TID: tidy imports
+# UP: pyupgrade
+select = [
+    "B",
+    "E",
+    "F",
+    "I",
+    "ICN",
+    "S",
+    "SIM",
+    "NPY201",
+    "TID",
+    # "UP",
+]
+# ignore
+# E501 (line length violations)
+# E722 Do not use bare `except`
+# ICN001 import numpy, pandas ok
+# SIM108 Use ternary operator
+# SIM102 collapsible-if
+# S110 try/except/pass
+# S311 random
+ignore = ["E501", "E722", 'ICN001', 'SIM108', 'SIM102', 'S110', 'S311']
