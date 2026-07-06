@@ -8,14 +8,16 @@
 Automated tests for checking D2VTransformer class.
 """
 
-import unittest
 import logging
+import unittest
+
 from gensim.sklearn_api import D2VTransformer
 from gensim.test.utils import common_texts
 
 
 class IteratorForIterable:
     """Iterator capable of folding into list."""
+
     def __init__(self, iterable):
         self._data = iterable
         self._index = 0
@@ -33,12 +35,13 @@ class IterableWithoutZeroElement:
     Iterable, emulating pandas.Series behaviour without 0-th element.
     Equivalent to calling `series.index += 1`.
     """
+
     def __init__(self, data):
         self.data = data
 
     def __getitem__(self, key):
         if key == 0:
-            raise KeyError("Emulation of absence of item with key 0.")
+            raise KeyError('Emulation of absence of item with key 0.')
         return self.data[key]
 
     def __iter__(self):

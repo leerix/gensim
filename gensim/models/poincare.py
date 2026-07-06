@@ -44,25 +44,26 @@ Initialize and train a model from a file containing one relation per line
 
 import csv
 import logging
-from numbers import Integral
 import sys
 import time
+from collections import Counter, defaultdict
+from numbers import Integral
 
 import numpy as np
-from collections import defaultdict, Counter
+from numpy import float32 as REAL
 from numpy import random as np_random
 from scipy.stats import spearmanr
 from six import string_types
-from six.moves import zip, range
+from six.moves import range, zip
 
-from gensim import utils, matutils
-from gensim.models.keyedvectors import Vocab, BaseKeyedVectors
-from gensim.models.utils_any2vec import _save_word2vec_format, _load_word2vec_format
-from numpy import float32 as REAL
+from gensim import matutils, utils
+from gensim.models.keyedvectors import BaseKeyedVectors, Vocab
+from gensim.models.utils_any2vec import _load_word2vec_format, _save_word2vec_format
 
 try:
     from autograd import grad  # Only required for optionally verifying gradients while training
     from autograd import numpy as grad_np
+
     AUTOGRAD_PRESENT = True
 except ImportError:
     AUTOGRAD_PRESENT = False
@@ -93,8 +94,22 @@ class PoincareModel(utils.SaveLoad):
         See the documentation of its class for usage examples.
 
     """
-    def __init__(self, train_data, size=50, alpha=0.1, negative=10, workers=1, epsilon=1e-5, regularization_coeff=1.0,
-                 burn_in=10, burn_in_alpha=0.01, init_range=(-0.001, 0.001), dtype=np.float64, seed=0):
+
+    def __init__(
+        self,
+        train_data,
+        size=50,
+        alpha=0.1,
+        negative=10,
+        workers=1,
+        epsilon=1e-5,
+        regularization_coeff=1.0,
+        burn_in=10,
+        burn_in_alpha=0.01,
+        init_range=(-0.001, 0.001),
+        dtype=np.float64,
+        seed=0,
+    ):
         """Initialize and train a Poincare embedding model from an iterable of relations.
 
         Parameters
@@ -210,7 +225,7 @@ class PoincareModel(utils.SaveLoad):
         """
         old_index2word_len = len(self.kv.index2word)
 
-        logger.info("loading relations from train data..")
+        logger.info('loading relations from train data..')
         for relation in relations:
             if len(relation) != 2:
                 raise ValueError('Relation pair "%s" should have exactly two items' % repr(relation))
@@ -225,7 +240,7 @@ class PoincareModel(utils.SaveLoad):
             self.node_relations[node_1_index].add(node_2_index)
             relation = (node_1_index, node_2_index)
             self.all_relations.append(relation)
-        logger.info("loaded %d relations from train data, %d nodes", len(self.all_relations), len(self.kv.vocab))
+        logger.info('loaded %d relations from train data, %d nodes', len(self.all_relations), len(self.kv.vocab))
         self.indices_set = set(range(len(self.kv.index2word)))  # Set of all node indices
         self.indices_array = np.fromiter(range(len(self.kv.index2word)), dtype=int)  # Numpy array of all node indices
         self._init_node_probabilities()
@@ -248,11 +263,9 @@ class PoincareModel(utils.SaveLoad):
 
     def _init_node_probabilities(self):
         """Initialize a-priori probabilities."""
-        counts = np.fromiter((
-                self.kv.vocab[self.kv.index2word[i]].count
-                for i in range(len(self.kv.index2word))
-            ),
-            dtype=np.float64, count=len(self.kv.index2word))
+        counts = np.fromiter(
+            (self.kv.vocab[self.kv.index2word[i]].count for i in range(len(self.kv.index2word))), dtype=np.float64, count=len(self.kv.index2word)
+        )
         self._node_counts_cumsum = np.cumsum(counts)
         self._node_probabilities = counts / counts.sum()
 
@@ -293,8 +306,7 @@ class PoincareModel(utils.SaveLoad):
         num_remaining_nodes = len(self.kv.vocab) - len(node_relations)
         if num_remaining_nodes < self.negative:
             raise ValueError(
-                'Cannot sample %d negative nodes from a set of %d negative nodes for %s' %
-                (self.negative, num_remaining_nodes, self.kv.index2word[node_index])
+                'Cannot sample %d negative nodes from a set of %d negative nodes for %s' % (self.negative, num_remaining_nodes, self.kv.index2word[node_index])
             )
 
         positive_fraction = float(len(node_relations)) / len(self.kv.vocab)
@@ -346,11 +358,7 @@ class PoincareModel(utils.SaveLoad):
         euclidean_dists = grad_np.linalg.norm(vector_u - vectors_v, axis=1)
         norm = grad_np.linalg.norm(vector_u)
         all_norms = grad_np.linalg.norm(vectors_v, axis=1)
-        poincare_dists = grad_np.arccosh(
-            1 + 2 * (
-                (euclidean_dists ** 2) / ((1 - norm ** 2) * (1 - all_norms ** 2))
-            )
-        )
+        poincare_dists = grad_np.arccosh(1 + 2 * ((euclidean_dists**2) / ((1 - norm**2) * (1 - all_norms**2))))
         exp_negative_distances = grad_np.exp(-poincare_dists)
         regularization_term = regularization_coeff * grad_np.linalg.norm(vectors_v[0]) ** 2
         return -grad_np.log(exp_negative_distances[0] / (exp_negative_distances.sum())) + regularization_term
@@ -498,16 +506,13 @@ class PoincareModel(utils.SaveLoad):
         max_diff = 0.0
         for i, (relation, negatives) in enumerate(zip(relations, all_negatives)):
             u, v = relation
-            auto_gradients = self._loss_grad(
-                np.vstack((self.kv.syn0[u], self.kv.syn0[[v] + negatives])), self.regularization_coeff)
+            auto_gradients = self._loss_grad(np.vstack((self.kv.syn0[u], self.kv.syn0[[v] + negatives])), self.regularization_coeff)
             computed_gradients = np.vstack((batch.gradients_u[:, i], batch.gradients_v[:, :, i]))
             diff = np.abs(auto_gradients - computed_gradients).max()
             if diff > max_diff:
                 max_diff = diff
         logger.info('max difference between computed gradients and autograd gradients: %.10f', max_diff)
-        assert max_diff < tol, (
-            'Max difference between computed gradients and autograd gradients %.10f, '
-            'greater than tolerance %.10f' % (max_diff, tol))
+        assert max_diff < tol, 'Max difference between computed gradients and autograd gradients %.10f, greater than tolerance %.10f' % (max_diff, tol)
 
     def _sample_negatives_batch(self, nodes):
         """Get negative examples for each node.
@@ -591,13 +596,13 @@ class PoincareModel(utils.SaveLoad):
         indices_u, indices_v = batch.indices_u, batch.indices_v
         batch_size = len(indices_u)
 
-        u_updates = (self.alpha * (batch.alpha ** 2) / 4 * grad_u).T
+        u_updates = (self.alpha * (batch.alpha**2) / 4 * grad_u).T
         self._handle_duplicates(u_updates, indices_u)
 
         self.kv.syn0[indices_u] -= u_updates
         self.kv.syn0[indices_u] = self._clip_vectors(self.kv.syn0[indices_u], self.epsilon)
 
-        v_updates = self.alpha * (batch.beta ** 2)[:, np.newaxis] / 4 * grad_v
+        v_updates = self.alpha * (batch.beta**2)[:, np.newaxis] / 4 * grad_v
         v_updates = v_updates.swapaxes(1, 2).swapaxes(0, 1)
         v_updates = v_updates.reshape(((1 + self.negative) * batch_size, self.size))
         self._handle_duplicates(v_updates, indices_v)
@@ -632,32 +637,33 @@ class PoincareModel(utils.SaveLoad):
 
         """
         if self.workers > 1:
-            raise NotImplementedError("Multi-threaded version not implemented yet")
+            raise NotImplementedError('Multi-threaded version not implemented yet')
         # Some divide-by-zero results are handled explicitly
         old_settings = np.seterr(divide='ignore', invalid='ignore')
 
         logger.info(
-            "training model of size %d with %d workers on %d relations for %d epochs and %d burn-in epochs, "
-            "using lr=%.5f burn-in lr=%.5f negative=%d",
-            self.size, self.workers, len(self.all_relations), epochs, self.burn_in,
-            self.alpha, self.burn_in_alpha, self.negative
+            'training model of size %d with %d workers on %d relations for %d epochs and %d burn-in epochs, using lr=%.5f burn-in lr=%.5f negative=%d',
+            self.size,
+            self.workers,
+            len(self.all_relations),
+            epochs,
+            self.burn_in,
+            self.alpha,
+            self.burn_in_alpha,
+            self.negative,
         )
 
         if self.burn_in > 0 and not self._burn_in_done:
-            logger.info("starting burn-in (%d epochs)----------------------------------------", self.burn_in)
+            logger.info('starting burn-in (%d epochs)----------------------------------------', self.burn_in)
             self.alpha = self.burn_in_alpha
-            self._train_batchwise(
-                epochs=self.burn_in, batch_size=batch_size, print_every=print_every,
-                check_gradients_every=check_gradients_every)
+            self._train_batchwise(epochs=self.burn_in, batch_size=batch_size, print_every=print_every, check_gradients_every=check_gradients_every)
             self._burn_in_done = True
-            logger.info("burn-in finished")
+            logger.info('burn-in finished')
 
         self.alpha = self.train_alpha
-        logger.info("starting training (%d epochs)----------------------------------------", epochs)
-        self._train_batchwise(
-            epochs=epochs, batch_size=batch_size, print_every=print_every,
-            check_gradients_every=check_gradients_every)
-        logger.info("training finished")
+        logger.info('starting training (%d epochs)----------------------------------------', epochs)
+        self._train_batchwise(epochs=epochs, batch_size=batch_size, print_every=print_every, check_gradients_every=check_gradients_every)
+        logger.info('training finished')
 
         np.seterr(**old_settings)
 
@@ -678,7 +684,7 @@ class PoincareModel(utils.SaveLoad):
 
         """
         if self.workers > 1:
-            raise NotImplementedError("Multi-threaded version not implemented yet")
+            raise NotImplementedError('Multi-threaded version not implemented yet')
         for epoch in range(1, epochs + 1):
             indices = list(range(len(self.all_relations)))
             self._np_random.shuffle(indices)
@@ -687,7 +693,7 @@ class PoincareModel(utils.SaveLoad):
             for batch_num, i in enumerate(range(0, len(indices), batch_size), start=1):
                 should_print = not (batch_num % print_every)
                 check_gradients = bool(check_gradients_every) and (batch_num % check_gradients_every) == 0
-                batch_indices = indices[i:i + batch_size]
+                batch_indices = indices[i : i + batch_size]
                 relations = [self.all_relations[idx] for idx in batch_indices]
                 result = self._train_on_batch(relations, check_gradients=check_gradients)
                 avg_loss += result.loss
@@ -695,12 +701,8 @@ class PoincareModel(utils.SaveLoad):
                     avg_loss /= print_every
                     time_taken = time.time() - last_time
                     speed = print_every * batch_size / time_taken
-                    logger.info(
-                        'training on epoch %d, examples #%d-#%d, loss: %.2f'
-                        % (epoch, i, i + batch_size, avg_loss))
-                    logger.info(
-                        'time taken for %d examples: %.2f s, %.2f examples / s'
-                        % (print_every * batch_size, time_taken, speed))
+                    logger.info('training on epoch %d, examples #%d-#%d, loss: %.2f' % (epoch, i, i + batch_size, avg_loss))
+                    logger.info('time taken for %d examples: %.2f s, %.2f examples / s' % (print_every * batch_size, time_taken, speed))
                     last_time = time.time()
                     avg_loss = 0.0
 
@@ -711,6 +713,7 @@ class PoincareBatch(object):
     Store intermediate state to avoid recomputing multiple times.
 
     """
+
     def __init__(self, vectors_u, vectors_v, indices_u, indices_v, regularization_coeff=1.0):
         """
         Initialize instance with sets of vectors for which distances are to be computed.
@@ -772,11 +775,9 @@ class PoincareBatch(object):
         euclidean_dists = np.linalg.norm(self.vectors_u - self.vectors_v, axis=1)  # (1 + neg_size, batch_size)
         norms_u = np.linalg.norm(self.vectors_u, axis=1)  # (1, batch_size)
         norms_v = np.linalg.norm(self.vectors_v, axis=1)  # (1 + neg_size, batch_size)
-        alpha = 1 - norms_u ** 2  # (1, batch_size)
-        beta = 1 - norms_v ** 2  # (1 + neg_size, batch_size)
-        gamma = 1 + 2 * (
-                (euclidean_dists ** 2) / (alpha * beta)
-            )  # (1 + neg_size, batch_size)
+        alpha = 1 - norms_u**2  # (1, batch_size)
+        beta = 1 - norms_v**2  # (1 + neg_size, batch_size)
+        gamma = 1 + 2 * ((euclidean_dists**2) / (alpha * beta))  # (1 + neg_size, batch_size)
         poincare_dists = np.arccosh(gamma)  # (1 + neg_size, batch_size)
         exp_negative_distances = np.exp(-poincare_dists)  # (1 + neg_size, batch_size)
         Z = exp_negative_distances.sum(axis=0)  # (batch_size)
@@ -826,9 +827,9 @@ class PoincareBatch(object):
             return
         self.compute_distances()
 
-        euclidean_dists_squared = self.euclidean_dists ** 2  # (1 + neg_size, batch_size)
+        euclidean_dists_squared = self.euclidean_dists**2  # (1 + neg_size, batch_size)
         # (1 + neg_size, 1, batch_size)
-        c_ = (4 / (self.alpha * self.beta * np.sqrt(self.gamma ** 2 - 1)))[:, np.newaxis, :]
+        c_ = (4 / (self.alpha * self.beta * np.sqrt(self.gamma**2 - 1)))[:, np.newaxis, :]
         # (1 + neg_size, 1, batch_size)
         u_coeffs = ((euclidean_dists_squared + self.alpha) / self.alpha)[:, np.newaxis, :]
         distance_gradients_u = u_coeffs * self.vectors_u - self.vectors_v  # (1 + neg_size, dim, batch_size)
@@ -866,6 +867,7 @@ class PoincareKeyedVectors(BaseKeyedVectors):
     Used to perform operations on the vectors such as vector lookup, distance calculations etc.
 
     """
+
     def __init__(self, vector_size):
         super(PoincareKeyedVectors, self).__init__(vector_size)
         self.max_distance = 0
@@ -961,8 +963,7 @@ class PoincareKeyedVectors(BaseKeyedVectors):
         _save_word2vec_format(fname, self.vocab, self.syn0, fvocab=fvocab, binary=binary, total_vec=total_vec)
 
     @classmethod
-    def load_word2vec_format(cls, fname, fvocab=None, binary=False, encoding='utf8', unicode_errors='strict',
-                             limit=None, datatype=REAL):
+    def load_word2vec_format(cls, fname, fvocab=None, binary=False, encoding='utf8', unicode_errors='strict', limit=None, datatype=REAL):
         """Load the input-hidden weight matrix from the original C word2vec-tool format.
         Use :func:`~gensim.models.utils_any2vec._load_word2vec_format`.
 
@@ -999,9 +1000,7 @@ class PoincareKeyedVectors(BaseKeyedVectors):
             Loaded Poincare model.
 
         """
-        return _load_word2vec_format(
-            cls, fname, fvocab=fvocab, binary=binary, encoding=encoding, unicode_errors=unicode_errors,
-            limit=limit, datatype=datatype)
+        return _load_word2vec_format(cls, fname, fvocab=fvocab, binary=binary, encoding=encoding, unicode_errors=unicode_errors, limit=limit, datatype=datatype)
 
     @staticmethod
     def vector_distance(vector_1, vector_2):
@@ -1042,11 +1041,7 @@ class PoincareKeyedVectors(BaseKeyedVectors):
         euclidean_dists = np.linalg.norm(vector_1 - vectors_all, axis=1)
         norm = np.linalg.norm(vector_1)
         all_norms = np.linalg.norm(vectors_all, axis=1)
-        return np.arccosh(
-            1 + 2 * (
-                (euclidean_dists ** 2) / ((1 - norm ** 2) * (1 - all_norms ** 2))
-            )
-        )
+        return np.arccosh(1 + 2 * ((euclidean_dists**2) / ((1 - norm**2) * (1 - all_norms**2))))
 
     def closest_child(self, node):
         """Get the node closest to `node` that is lower in the hierarchy than `node`.
@@ -1280,7 +1275,8 @@ class PoincareKeyedVectors(BaseKeyedVectors):
             closest_indices = matutils.argsort(all_distances, topn=1 + topn)
         result = [
             (self.index2word[index], float(all_distances[index]))
-            for index in closest_indices if (not node_index or index != node_index)  # ignore the input node
+            for index in closest_indices
+            if (not node_index or index != node_index)  # ignore the input node
         ]
         if topn:
             result = result[:topn]
@@ -1461,7 +1457,7 @@ class PoincareRelations(object):
             if sys.version_info[0] < 3:
                 lines = file_obj
             else:
-                lines = (l.decode(self.encoding) for l in file_obj)
+                lines = (line.decode(self.encoding) for line in file_obj)
             # csv.reader requires bytestring input in python2, unicode input in python3
             reader = csv.reader(lines, delimiter=self.delimiter)
             for row in reader:
@@ -1574,7 +1570,7 @@ class ReconstructionEvaluation(object):
         # Compute how many negative relation distances are less than each positive relation distance, plus 1 for rank
         ranks = (negative_relation_distances < positive_relation_distances[:, np.newaxis]).sum(axis=1) + 1
         map_ranks = np.sort(ranks) + np.arange(len(ranks))
-        avg_precision = ((np.arange(1, len(map_ranks) + 1) / np.sort(map_ranks)).mean())
+        avg_precision = (np.arange(1, len(map_ranks) + 1) / np.sort(map_ranks)).mean()
         return list(ranks), avg_precision
 
     def evaluate(self, max_n=None):
@@ -1616,8 +1612,7 @@ class ReconstructionEvaluation(object):
             item_relations = list(self.relations[item])
             item_term = self.embedding.index2word[item]
             item_distances = self.embedding.distances(item_term)
-            positive_relation_ranks, avg_precision = \
-                self.get_positive_relation_ranks_and_avg_prec(item_distances, item_relations)
+            positive_relation_ranks, avg_precision = self.get_positive_relation_ranks_and_avg_prec(item_distances, item_relations)
             ranks += positive_relation_ranks
             avg_precision_scores.append(avg_precision)
             if max_n is not None and i > max_n:
@@ -1685,7 +1680,7 @@ class LinkPredictionEvaluation(object):
         # Compute how many negative relation distances are less than each unknown relation distance, plus 1 for rank
         ranks = (negative_relation_distances < unknown_relation_distances[:, np.newaxis]).sum(axis=1) + 1
         map_ranks = np.sort(ranks) + np.arange(len(ranks))
-        avg_precision = ((np.arange(1, len(map_ranks) + 1) / np.sort(map_ranks)).mean())
+        avg_precision = (np.arange(1, len(map_ranks) + 1) / np.sort(map_ranks)).mean()
         return list(ranks), avg_precision
 
     def evaluate(self, max_n=None):
@@ -1728,8 +1723,7 @@ class LinkPredictionEvaluation(object):
             known_relations = list(self.relations['known'][item])
             item_term = self.embedding.index2word[item]
             item_distances = self.embedding.distances(item_term)
-            unknown_relation_ranks, avg_precision = \
-                self.get_unknown_relation_ranks_and_avg_prec(item_distances, unknown_relations, known_relations)
+            unknown_relation_ranks, avg_precision = self.get_unknown_relation_ranks_and_avg_prec(item_distances, unknown_relations, known_relations)
             ranks += unknown_relation_ranks
             avg_precision_scores.append(avg_precision)
             if max_n is not None and i > max_n:
@@ -1782,7 +1776,7 @@ class LexicalEntailmentEvaluation(object):
             word_1_terms = self.find_matching_terms(trie, term_1)
             word_2_terms = self.find_matching_terms(trie, term_2)
         except KeyError:
-            raise ValueError("No matching terms found for either %s or %s" % (term_1, term_2))
+            raise ValueError('No matching terms found for either %s or %s' % (term_1, term_2))
         min_distance = np.inf
         min_term_1, min_term_2 = None, None
         for term_1 in word_1_terms:
@@ -1835,8 +1829,7 @@ class LexicalEntailmentEvaluation(object):
         try:
             from pygtrie import Trie
         except ImportError:
-            raise ImportError(
-                'pygtrie could not be imported, please install pygtrie in order to use LexicalEntailmentEvaluation')
+            raise ImportError('pygtrie could not be imported, please install pygtrie in order to use LexicalEntailmentEvaluation')
 
         vocab_trie = Trie()
         for key in embedding.vocab:

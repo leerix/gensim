@@ -160,37 +160,38 @@ and so on.
 
 from __future__ import division  # py3 "true division"
 
-from itertools import chain
 import logging
+from itertools import chain
 from numbers import Integral
 
 try:
-    from queue import Queue, Empty
+    from queue import Empty, Queue
 except ImportError:
-    from Queue import Queue, Empty  # noqa:F401
+    from Queue import Empty, Queue  # noqa:F401
 
-from numpy import dot, float32 as REAL, memmap as np_memmap, \
-    double, array, zeros, vstack, sqrt, newaxis, integer, \
-    ndarray, sum as np_sum, prod, argmax
 import numpy as np
-
-from gensim import utils, matutils  # utility fnc for pickling, common scipy operations etc
-from gensim.corpora.dictionary import Dictionary
-from six import string_types, integer_types
-from six.moves import zip, range
+from numpy import argmax, array, dot, double, integer, ndarray, newaxis, prod, sqrt, vstack, zeros
+from numpy import float32 as REAL
+from numpy import memmap as np_memmap
+from numpy import sum as np_sum
 from scipy import stats
-from gensim.utils import deprecated
-from gensim.models.utils_any2vec import (
-    _save_word2vec_format,
-    _load_word2vec_format,
-    ft_ngram_hashes,
-)
-from gensim.similarities.termsim import TermSimilarityIndex, SparseTermSimilarityMatrix
+from six import integer_types, string_types
+from six.moves import range, zip
+
+from gensim import matutils, utils  # utility fnc for pickling, common scipy operations etc
+from gensim.corpora.dictionary import Dictionary
 
 #
 # For backwards compatibility, see https://github.com/RaRe-Technologies/gensim/issues/2201
 #
 from gensim.models.deprecated.keyedvectors import EuclideanKeyedVectors  # noqa
+from gensim.models.utils_any2vec import (
+    _load_word2vec_format,
+    _save_word2vec_format,
+    ft_ngram_hashes,
+)
+from gensim.similarities.termsim import SparseTermSimilarityMatrix, TermSimilarityIndex
+from gensim.utils import deprecated
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +201,7 @@ class Vocab(object):
     and for constructing binary trees (incl. both word leaves and inner nodes).
 
     """
+
     def __init__(self, **kwargs):
         self.count = 0
         self.__dict__.update(kwargs)
@@ -209,11 +211,12 @@ class Vocab(object):
 
     def __str__(self):
         vals = ['%s:%r' % (key, self.__dict__[key]) for key in sorted(self.__dict__) if not key.startswith('_')]
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(vals))
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(vals))
 
 
 class BaseKeyedVectors(utils.SaveLoad):
     """Abstract base class / interface for various types of word vectors."""
+
     def __init__(self, vector_size):
         self.vectors = zeros((0, vector_size), dtype=REAL)
         self.vocab = {}
@@ -376,13 +379,14 @@ class BaseKeyedVectors(utils.SaveLoad):
 
 class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
     """Class containing common methods for operations over word vectors."""
+
     def __init__(self, vector_size):
         super(WordEmbeddingsKeyedVectors, self).__init__(vector_size=vector_size)
         self.vectors_norm = None
         self.index2word = []
 
     @property
-    @deprecated("Attribute will be removed in 4.0.0, use self instead")
+    @deprecated('Attribute will be removed in 4.0.0, use self instead')
     def wv(self):
         return self
 
@@ -395,22 +399,22 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
         self.index2word = value
 
     @property
-    @deprecated("Attribute will be removed in 4.0.0, use self.vectors instead")
+    @deprecated('Attribute will be removed in 4.0.0, use self.vectors instead')
     def syn0(self):
         return self.vectors
 
     @syn0.setter
-    @deprecated("Attribute will be removed in 4.0.0, use self.vectors instead")
+    @deprecated('Attribute will be removed in 4.0.0, use self.vectors instead')
     def syn0(self, value):
         self.vectors = value
 
     @property
-    @deprecated("Attribute will be removed in 4.0.0, use self.vectors_norm instead")
+    @deprecated('Attribute will be removed in 4.0.0, use self.vectors_norm instead')
     def syn0norm(self):
         return self.vectors_norm
 
     @syn0norm.setter
-    @deprecated("Attribute will be removed in 4.0.0, use self.vectors_norm instead")
+    @deprecated('Attribute will be removed in 4.0.0, use self.vectors_norm instead')
     def syn0norm(self, value):
         self.vectors_norm = value
 
@@ -535,14 +539,8 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
             positive = [positive]
 
         # add weights for each word, if not already present; default to 1.0 for positive and -1.0 for negative words
-        positive = [
-            (word, 1.0) if isinstance(word, string_types + (ndarray,)) else word
-            for word in positive
-        ]
-        negative = [
-            (word, -1.0) if isinstance(word, string_types + (ndarray,)) else word
-            for word in negative
-        ]
+        positive = [(word, 1.0) if isinstance(word, string_types + (ndarray,)) else word for word in positive]
+        negative = [(word, -1.0) if isinstance(word, string_types + (ndarray,)) else word for word in negative]
 
         # compute the weighted average of all words
         all_words, mean = set(), []
@@ -554,7 +552,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
                 if word in self.vocab:
                     all_words.add(self.vocab[word].index)
         if not mean:
-            raise ValueError("cannot compute similarity with no input")
+            raise ValueError('cannot compute similarity with no input')
         mean = matutils.unitvec(array(mean).mean(axis=0)).astype(REAL)
 
         if indexer is not None and isinstance(topn, int):
@@ -621,9 +619,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
         """
         return self.most_similar(positive=[vector], topn=topn, restrict_vocab=restrict_vocab)
 
-    @deprecated(
-        "Method will be removed in 4.0.0, use "
-        "gensim.models.keyedvectors.WordEmbeddingSimilarityIndex instead")
+    @deprecated('Method will be removed in 4.0.0, use gensim.models.keyedvectors.WordEmbeddingSimilarityIndex instead')
     def similarity_matrix(self, dictionary, tfidf=None, threshold=0.0, exponent=2.0, nonzero_limit=100, dtype=REAL):
         """Construct a term similarity matrix for computing Soft Cosine Measure.
 
@@ -670,8 +666,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
 
         """
         index = WordEmbeddingSimilarityIndex(self, threshold=threshold, exponent=exponent)
-        similarity_matrix = SparseTermSimilarityMatrix(
-            index, dictionary, tfidf=tfidf, nonzero_limit=nonzero_limit, dtype=dtype)
+        similarity_matrix = SparseTermSimilarityMatrix(index, dictionary, tfidf=tfidf, nonzero_limit=nonzero_limit, dtype=dtype)
         return similarity_matrix.matrix
 
     def wmdistance(self, document1, document2):
@@ -727,10 +722,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
             logger.info('Removed %d and %d OOV words from document 1 and 2 (respectively).', diff1, diff2)
 
         if not document1 or not document2:
-            logger.info(
-                "At least one of the documents had no words that were in the vocabulary. "
-                "Aborting (returning inf)."
-            )
+            logger.info('At least one of the documents had no words that were in the vocabulary. Aborting (returning inf).')
             return float('inf')
 
         dictionary = Dictionary(documents=[document1, document2])
@@ -755,7 +747,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
                     continue
 
                 # Compute Euclidean distance between word vectors.
-                distance_matrix[i, j] = distance_matrix[j, i] = sqrt(np_sum((self[t1] - self[t2])**2))
+                distance_matrix[i, j] = distance_matrix[j, i] = sqrt(np_sum((self[t1] - self[t2]) ** 2))
 
         if np_sum(distance_matrix) == 0.0:
             # `emd` gets stuck if the distance matrix contains only zeros.
@@ -822,22 +814,13 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
             # allow calls like most_similar_cosmul('dog'), as a shorthand for most_similar_cosmul(['dog'])
             positive = [positive]
 
-        all_words = {
-            self.vocab[word].index for word in positive + negative
-            if not isinstance(word, ndarray) and word in self.vocab
-            }
+        all_words = {self.vocab[word].index for word in positive + negative if not isinstance(word, ndarray) and word in self.vocab}
 
-        positive = [
-            self.word_vec(word, use_norm=True) if isinstance(word, string_types) else word
-            for word in positive
-        ]
-        negative = [
-            self.word_vec(word, use_norm=True) if isinstance(word, string_types) else word
-            for word in negative
-        ]
+        positive = [self.word_vec(word, use_norm=True) if isinstance(word, string_types) else word for word in positive]
+        negative = [self.word_vec(word, use_norm=True) if isinstance(word, string_types) else word for word in negative]
 
         if not positive:
-            raise ValueError("cannot compute similarity with no input")
+            raise ValueError('cannot compute similarity with no input')
 
         # equation (4) of Levy & Goldberg "Linguistic Regularities...",
         # with distances shifted to [0,1] per footnote (7)
@@ -871,9 +854,9 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
         used_words = [word for word in words if word in self]
         if len(used_words) != len(words):
             ignored_words = set(words) - set(used_words)
-            logger.warning("vectors for words %s are not present in the model, ignoring these words", ignored_words)
+            logger.warning('vectors for words %s are not present in the model, ignoring these words', ignored_words)
         if not used_words:
-            raise ValueError("cannot select a word from an empty list")
+            raise ValueError('cannot select a word from an empty list')
         vectors = vstack(self.word_vec(word, use_norm=True) for word in used_words).astype(REAL)
         mean = matutils.unitvec(vectors.mean(axis=0)).astype(REAL)
         dists = dot(vectors, mean)
@@ -989,7 +972,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
             Similarities between `ws1` and `ws2`.
 
         """
-        if not(len(ws1) and len(ws2)):
+        if not (len(ws1) and len(ws2)):
             raise ZeroDivisionError('At least one of the passed list is empty.')
         v1 = [self[word] for word in ws1]
         v2 = [self[word] for word in ws2]
@@ -1014,7 +997,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
         correct, incorrect = len(section['correct']), len(section['incorrect'])
         if correct + incorrect > 0:
             score = correct / (correct + incorrect)
-            logger.info("%s: %.1f%% (%i/%i)", section['section'], 100.0 * score, correct, correct + incorrect)
+            logger.info('%s: %.1f%% (%i/%i)', section['section'], 100.0 * score, correct, correct + incorrect)
             return score
 
     def evaluate_word_analogies(self, analogies, restrict_vocab=300000, case_insensitive=True, dummy4unknown=False):
@@ -1060,7 +1043,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
         ok_vocab = [(w, self.vocab[w]) for w in self.index2word[:restrict_vocab]]
         ok_vocab = {w.upper(): v for w, v in reversed(ok_vocab)} if case_insensitive else dict(ok_vocab)
         oov = 0
-        logger.info("Evaluating word analogies for top %i words in the model on %s", restrict_vocab, analogies)
+        logger.info('Evaluating word analogies for top %i words in the model on %s', restrict_vocab, analogies)
         sections, section = [], None
         quadruplets_no = 0
         with utils.open(analogies, 'rb') as fin:
@@ -1074,14 +1057,14 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
                     section = {'section': line.lstrip(': ').strip(), 'correct': [], 'incorrect': []}
                 else:
                     if not section:
-                        raise ValueError("Missing section header before line #%i in %s" % (line_no, analogies))
+                        raise ValueError('Missing section header before line #%i in %s' % (line_no, analogies))
                     try:
                         if case_insensitive:
                             a, b, c, expected = [word.upper() for word in line.split()]
                         else:
                             a, b, c, expected = [word for word in line.split()]
                     except ValueError:
-                        logger.info("Skipping invalid line #%i in %s", line_no, analogies)
+                        logger.info('Skipping invalid line #%i in %s', line_no, analogies)
                         continue
                     quadruplets_no += 1
                     if a not in ok_vocab or b not in ok_vocab or c not in ok_vocab or expected not in ok_vocab:
@@ -1090,7 +1073,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
                             logger.debug('Zero accuracy for line #%d with OOV words: %s', line_no, line.strip())
                             section['incorrect'].append((a, b, c, expected))
                         else:
-                            logger.debug("Skipping line #%i with OOV words: %s", line_no, line.strip())
+                            logger.debug('Skipping line #%i with OOV words: %s', line_no, line.strip())
                         continue
                     original_vocab = self.vocab
                     self.vocab = ok_vocab
@@ -1104,7 +1087,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
                         predicted = element[0].upper() if case_insensitive else element[0]
                         if predicted in ok_vocab and predicted not in ignore:
                             if predicted != expected:
-                                logger.debug("%s: expected %s, predicted %s", line.strip(), expected, predicted)
+                                logger.debug('%s: expected %s, predicted %s', line.strip(), expected, predicted)
                             break
                     if predicted == expected:
                         section['correct'].append((a, b, c, expected))
@@ -1124,10 +1107,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
         oov_ratio = float(oov) / quadruplets_no * 100
         logger.info('Quadruplets with out-of-vocabulary words: %.1f%%', oov_ratio)
         if not dummy4unknown:
-            logger.info(
-                'NB: analogies containing OOV words were skipped from evaluation! '
-                'To change this behavior, use "dummy4unknown=True"'
-            )
+            logger.info('NB: analogies containing OOV words were skipped from evaluation! To change this behavior, use "dummy4unknown=True"')
         analogies_score = self._log_evaluate_word_analogies(total)
         sections.append(total)
         # Return the overall score and the full lists of correct and incorrect analogies
@@ -1137,12 +1117,9 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
     def log_accuracy(section):
         correct, incorrect = len(section['correct']), len(section['incorrect'])
         if correct + incorrect > 0:
-            logger.info(
-                "%s: %.1f%% (%i/%i)",
-                section['section'], 100.0 * correct / (correct + incorrect), correct, correct + incorrect
-            )
+            logger.info('%s: %.1f%% (%i/%i)', section['section'], 100.0 * correct / (correct + incorrect), correct, correct + incorrect)
 
-    @deprecated("Method will be removed in 4.0.0, use self.evaluate_word_analogies() instead")
+    @deprecated('Method will be removed in 4.0.0, use self.evaluate_word_analogies() instead')
     def accuracy(self, questions, restrict_vocab=30000, most_similar=most_similar, case_insensitive=True):
         """Compute accuracy of the model.
 
@@ -1188,17 +1165,17 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
                     section = {'section': line.lstrip(': ').strip(), 'correct': [], 'incorrect': []}
                 else:
                     if not section:
-                        raise ValueError("Missing section header before line #%i in %s" % (line_no, questions))
+                        raise ValueError('Missing section header before line #%i in %s' % (line_no, questions))
                     try:
                         if case_insensitive:
                             a, b, c, expected = [word.upper() for word in line.split()]
                         else:
                             a, b, c, expected = [word for word in line.split()]
                     except ValueError:
-                        logger.info("Skipping invalid line #%i in %s", line_no, questions)
+                        logger.info('Skipping invalid line #%i in %s', line_no, questions)
                         continue
                     if a not in ok_vocab or b not in ok_vocab or c not in ok_vocab or expected not in ok_vocab:
-                        logger.debug("Skipping line #%i with OOV words: %s", line_no, line.strip())
+                        logger.debug('Skipping line #%i with OOV words: %s', line_no, line.strip())
                         continue
                     original_vocab = self.vocab
                     self.vocab = ok_vocab
@@ -1211,7 +1188,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
                         predicted = self.index2word[index].upper() if case_insensitive else self.index2word[index]
                         if predicted in ok_vocab and predicted not in ignore:
                             if predicted != expected:
-                                logger.debug("%s: expected %s, predicted %s", line.strip(), expected, predicted)
+                                logger.debug('%s: expected %s, predicted %s', line.strip(), expected, predicted)
                             break
                     if predicted == expected:
                         section['correct'].append((a, b, c, expected))
@@ -1237,8 +1214,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
         logger.info('Spearman rank-order correlation coefficient against %s: %.4f', pairs, spearman[0])
         logger.info('Pairs with unknown words ratio: %.1f%%', oov)
 
-    def evaluate_word_pairs(self, pairs, delimiter='\t', restrict_vocab=300000,
-                            case_insensitive=True, dummy4unknown=False):
+    def evaluate_word_pairs(self, pairs, delimiter='\t', restrict_vocab=300000, case_insensitive=True, dummy4unknown=False):
         """Compute correlation of the model with human similarity judgments.
 
         Notes
@@ -1325,10 +1301,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
             oov_ratio = float(oov) / (len(similarity_gold) + oov) * 100
 
         logger.debug('Pearson correlation coefficient against %s: %f with p-value %f', pairs, pearson[0], pearson[1])
-        logger.debug(
-            'Spearman rank-order correlation coefficient against %s: %f with p-value %f',
-            pairs, spearman[0], spearman[1]
-        )
+        logger.debug('Spearman rank-order correlation coefficient against %s: %f with p-value %f', pairs, spearman[0], spearman[1])
         logger.debug('Pairs with unknown words: %d', oov)
         self.log_evaluate_word_pairs(pearson, spearman, oov_ratio, pairs)
         return pearson, spearman, oov_ratio
@@ -1350,7 +1323,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
 
         """
         if getattr(self, 'vectors_norm', None) is None or replace:
-            logger.info("precomputing L2-norms of word weight vectors")
+            logger.info('precomputing L2-norms of word weight vectors')
             self.vectors_norm = _l2_norm(self.vectors, replace=replace)
 
     def relative_cosine_similarity(self, wa, wb, topn=10):
@@ -1378,7 +1351,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
 
         """
         sims = self.similar_by_word(wa, topn)
-        assert sims, "Failed code invariant: list of similar words must never be empty."
+        assert sims, 'Failed code invariant: list of similar words must never be empty.'
         rcs = float(self.similarity(wa, wb)) / (sum(sim for _, sim in sims))
 
         return rcs
@@ -1418,7 +1391,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
         try:
             from keras.layers import Embedding
         except ImportError:
-            raise ImportError("Please install Keras to use this function")
+            raise ImportError('Please install Keras to use this function')
         if word_index is None:
             weights = self.vectors
         else:
@@ -1428,10 +1401,7 @@ class WordEmbeddingsKeyedVectors(BaseKeyedVectors):
                 if word in self.vocab:
                     weights[index] = self.get_vector(word)
 
-        layer = Embedding(
-            input_dim=weights.shape[0], output_dim=weights.shape[1],
-            weights=[weights], trainable=train_embeddings
-        )
+        layer = Embedding(input_dim=weights.shape[0], output_dim=weights.shape[1], weights=[weights], trainable=train_embeddings)
         return layer
 
 
@@ -1459,6 +1429,7 @@ class WordEmbeddingSimilarityIndex(TermSimilarityIndex):
         Build a term similarity matrix and compute the Soft Cosine Measure.
 
     """
+
     def __init__(self, keyedvectors, threshold=0.0, exponent=2.0, kwargs=None):
         assert isinstance(keyedvectors, WordEmbeddingsKeyedVectors)
         self.keyedvectors = keyedvectors
@@ -1482,6 +1453,7 @@ class Word2VecKeyedVectors(WordEmbeddingsKeyedVectors):
     Used to perform operations on the vectors such as vector lookup, distance, similarity etc.
 
     """
+
     def save_word2vec_format(self, fname, fvocab=None, binary=False, total_vec=None):
         """Store the input-hidden weight matrix in the same format used by the original
         C word2vec-tool, for compatibility.
@@ -1500,12 +1472,10 @@ class Word2VecKeyedVectors(WordEmbeddingsKeyedVectors):
 
         """
         # from gensim.models.word2vec import save_word2vec_format
-        _save_word2vec_format(
-            fname, self.vocab, self.vectors, fvocab=fvocab, binary=binary, total_vec=total_vec)
+        _save_word2vec_format(fname, self.vocab, self.vectors, fvocab=fvocab, binary=binary, total_vec=total_vec)
 
     @classmethod
-    def load_word2vec_format(cls, fname, fvocab=None, binary=False, encoding='utf8', unicode_errors='strict',
-                             limit=None, datatype=REAL):
+    def load_word2vec_format(cls, fname, fvocab=None, binary=False, encoding='utf8', unicode_errors='strict', limit=None, datatype=REAL):
         """Load the input-hidden weight matrix from the original C word2vec-tool format.
 
         Warnings
@@ -1544,9 +1514,7 @@ class Word2VecKeyedVectors(WordEmbeddingsKeyedVectors):
 
         """
         # from gensim.models.word2vec import load_word2vec_format
-        return _load_word2vec_format(
-            cls, fname, fvocab=fvocab, binary=binary, encoding=encoding, unicode_errors=unicode_errors,
-            limit=limit, datatype=datatype)
+        return _load_word2vec_format(cls, fname, fvocab=fvocab, binary=binary, encoding=encoding, unicode_errors=unicode_errors, limit=limit, datatype=datatype)
 
     @classmethod
     def load(cls, fname_or_handle, **kwargs):
@@ -1562,7 +1530,6 @@ KeyedVectors = Word2VecKeyedVectors  # alias for backward compatibility
 
 
 class Doc2VecKeyedVectors(BaseKeyedVectors):
-
     def __init__(self, vector_size, mapfile_path):
         super(Doc2VecKeyedVectors, self).__init__(vector_size=vector_size)
         self.doctags = {}  # string -> Doctag (only filled if necessary)
@@ -1583,12 +1550,12 @@ class Doc2VecKeyedVectors(BaseKeyedVectors):
         self.offset2doctag = value
 
     @property
-    @deprecated("Attribute will be removed in 4.0.0, use docvecs.vectors_docs instead")
+    @deprecated('Attribute will be removed in 4.0.0, use docvecs.vectors_docs instead')
     def doctag_syn0(self):
         return self.vectors_docs
 
     @property
-    @deprecated("Attribute will be removed in 4.0.0, use docvecs.vectors_docs_norm instead")
+    @deprecated('Attribute will be removed in 4.0.0, use docvecs.vectors_docs_norm instead')
     def doctag_syn0norm(self):
         return self.vectors_docs_norm
 
@@ -1656,11 +1623,9 @@ class Doc2VecKeyedVectors(BaseKeyedVectors):
 
         """
         if getattr(self, 'vectors_docs_norm', None) is None or replace:
-            logger.info("precomputing L2-norms of doc weight vectors")
+            logger.info('precomputing L2-norms of doc weight vectors')
             if not replace and self.mapfile_path:
-                self.vectors_docs_norm = np_memmap(
-                    self.mapfile_path + '.vectors_docs_norm', dtype=REAL,
-                    mode='w+', shape=self.vectors_docs.shape)
+                self.vectors_docs_norm = np_memmap(self.mapfile_path + '.vectors_docs_norm', dtype=REAL, mode='w+', shape=self.vectors_docs.shape)
             else:
                 self.vectors_docs_norm = _l2_norm(self.vectors_docs, replace=replace)
 
@@ -1711,14 +1676,8 @@ class Doc2VecKeyedVectors(BaseKeyedVectors):
             positive = [positive]
 
         # add weights for each doc, if not already present; default to 1.0 for positive and -1.0 for negative docs
-        positive = [
-            (doc, 1.0) if isinstance(doc, string_types + integer_types + (ndarray, integer))
-            else doc for doc in positive
-        ]
-        negative = [
-            (doc, -1.0) if isinstance(doc, string_types + integer_types + (ndarray, integer))
-            else doc for doc in negative
-        ]
+        positive = [(doc, 1.0) if isinstance(doc, string_types + integer_types + (ndarray, integer)) else doc for doc in positive]
+        negative = [(doc, -1.0) if isinstance(doc, string_types + integer_types + (ndarray, integer)) else doc for doc in negative]
 
         # compute the weighted average of all docs
         all_docs, mean = set(), []
@@ -1731,7 +1690,7 @@ class Doc2VecKeyedVectors(BaseKeyedVectors):
             else:
                 raise KeyError("doc '%s' not in trained set" % doc)
         if not mean:
-            raise ValueError("cannot compute similarity with no input")
+            raise ValueError('cannot compute similarity with no input')
         mean = matutils.unitvec(array(mean).mean(axis=0)).astype(REAL)
 
         if indexer is not None and isinstance(topn, int):
@@ -1768,11 +1727,10 @@ class Doc2VecKeyedVectors(BaseKeyedVectors):
         self.init_sims()
 
         docs = [doc for doc in docs if doc in self.doctags or 0 <= doc < self.count]  # filter out unknowns
-        logger.debug("using docs %s", docs)
+        logger.debug('using docs %s', docs)
         if not docs:
-            raise ValueError("cannot select a doc from an empty list")
-        vectors = vstack(
-            self.vectors_docs_norm[self._int_index(doc, self.doctags, self.max_rawint)] for doc in docs).astype(REAL)
+            raise ValueError('cannot select a doc from an empty list')
+        vectors = vstack(self.vectors_docs_norm[self._int_index(doc, self.doctags, self.max_rawint)] for doc in docs).astype(REAL)
         mean = matutils.unitvec(vectors.mean(axis=0)).astype(REAL)
         dists = dot(vectors, mean)
         return sorted(zip(dists, docs))[0][1]
@@ -1881,8 +1839,7 @@ class Doc2VecKeyedVectors(BaseKeyedVectors):
         d2 = model.infer_vector(doc_words=doc_words2, alpha=alpha, min_alpha=min_alpha, steps=steps)
         return dot(matutils.unitvec(d1), matutils.unitvec(d2))
 
-    def save_word2vec_format(self, fname, prefix='*dt_', fvocab=None,
-                             total_vec=None, binary=False, write_first_line=True):
+    def save_word2vec_format(self, fname, prefix='*dt_', fvocab=None, total_vec=None, binary=False, write_first_line=True):
         """Store the input-hidden weight matrix in the same format used by the original
         C word2vec-tool, for compatibility.
 
@@ -1907,16 +1864,16 @@ class Doc2VecKeyedVectors(BaseKeyedVectors):
         total_vec = total_vec or len(self)
         with utils.open(fname, 'ab') as fout:
             if write_first_line:
-                logger.info("storing %sx%s projection weights into %s", total_vec, self.vectors_docs.shape[1], fname)
-                fout.write(utils.to_utf8("%s %s\n" % (total_vec, self.vectors_docs.shape[1])))
+                logger.info('storing %sx%s projection weights into %s', total_vec, self.vectors_docs.shape[1], fname)
+                fout.write(utils.to_utf8('%s %s\n' % (total_vec, self.vectors_docs.shape[1])))
             # store as in input order
             for i in range(len(self)):
-                doctag = u"%s%s" % (prefix, self._index_to_doctag(i, self.offset2doctag, self.max_rawint))
+                doctag = '%s%s' % (prefix, self._index_to_doctag(i, self.offset2doctag, self.max_rawint))
                 row = self.vectors_docs[i]
                 if binary:
-                    fout.write(utils.to_utf8(doctag) + b" " + row.tostring())
+                    fout.write(utils.to_utf8(doctag) + b' ' + row.tostring())
                 else:
-                    fout.write(utils.to_utf8("%s %s\n" % (doctag, ' '.join("%f" % val for val in row))))
+                    fout.write(utils.to_utf8('%s %s\n' % (doctag, ' '.join('%f' % val for val in row))))
 
     @staticmethod
     def _int_index(index, doctags, max_rawint):
@@ -2005,6 +1962,7 @@ class FastTextKeyedVectors(WordEmbeddingsKeyedVectors):
         Maps vocabulary items (by their index) to the buckets they occur in.
 
     """
+
     def __init__(self, vector_size, min_n, max_n, bucket, compatible_hash):
         super(FastTextKeyedVectors, self).__init__(vector_size=vector_size)
         self.vectors_vocab = None
@@ -2024,22 +1982,22 @@ class FastTextKeyedVectors(WordEmbeddingsKeyedVectors):
         return model
 
     @property
-    @deprecated("Attribute will be removed in 4.0.0, use self.vectors_vocab instead")
+    @deprecated('Attribute will be removed in 4.0.0, use self.vectors_vocab instead')
     def syn0_vocab(self):
         return self.vectors_vocab
 
     @property
-    @deprecated("Attribute will be removed in 4.0.0, use self.vectors_vocab_norm instead")
+    @deprecated('Attribute will be removed in 4.0.0, use self.vectors_vocab_norm instead')
     def syn0_vocab_norm(self):
         return self.vectors_vocab_norm
 
     @property
-    @deprecated("Attribute will be removed in 4.0.0, use self.vectors_ngrams instead")
+    @deprecated('Attribute will be removed in 4.0.0, use self.vectors_ngrams instead')
     def syn0_ngrams(self):
         return self.vectors_ngrams
 
     @property
-    @deprecated("Attribute will be removed in 4.0.0, use self.vectors_ngrams_norm instead")
+    @deprecated('Attribute will be removed in 4.0.0, use self.vectors_ngrams_norm instead')
     def syn0_ngrams_norm(self):
         return self.vectors_ngrams_norm
 
@@ -2143,7 +2101,7 @@ class FastTextKeyedVectors(WordEmbeddingsKeyedVectors):
                 word_vec += self.vectors_ngrams[nh]
             result = word_vec / len(ngram_hashes)
             if use_norm:
-                result /= sqrt(sum(result ** 2))
+                result /= sqrt(sum(result**2))
             return result
 
     def init_sims(self, replace=False):
@@ -2164,7 +2122,7 @@ class FastTextKeyedVectors(WordEmbeddingsKeyedVectors):
         """
         super(FastTextKeyedVectors, self).init_sims(replace)
         if getattr(self, 'vectors_ngrams_norm', None) is None or replace:
-            logger.info("precomputing L2-norms of ngram weight vectors")
+            logger.info('precomputing L2-norms of ngram weight vectors')
             self.vectors_ngrams_norm = _l2_norm(self.vectors_ngrams, replace=replace)
 
     def save_word2vec_format(self, fname, fvocab=None, binary=False, total_vec=None):
@@ -2185,8 +2143,7 @@ class FastTextKeyedVectors(WordEmbeddingsKeyedVectors):
 
         """
         # from gensim.models.word2vec import save_word2vec_format
-        _save_word2vec_format(
-            fname, self.vocab, self.vectors, fvocab=fvocab, binary=binary, total_vec=total_vec)
+        _save_word2vec_format(fname, self.vocab, self.vectors, fvocab=fvocab, binary=binary, total_vec=total_vec)
 
     def init_ngrams_weights(self, seed):
         """Initialize the vocabulary and ngrams weights prior to training.
@@ -2310,7 +2267,7 @@ class FastTextKeyedVectors(WordEmbeddingsKeyedVectors):
             self.vectors[v.index] = word_vec
 
     @property
-    @deprecated("Attribute will be removed in 4.0.0, use self.bucket instead")
+    @deprecated('Attribute will be removed in 4.0.0, use self.bucket instead')
     def num_ngram_vectors(self):
         return self.bucket
 
@@ -2381,7 +2338,7 @@ def _l2_norm(m, replace=False):
     The normalized matrix.  If replace=True, this will be the same as m.
 
     """
-    dist = sqrt((m ** 2).sum(-1))[..., newaxis]
+    dist = sqrt((m**2).sum(-1))[..., newaxis]
     if replace:
         m /= dist
         return m
@@ -2398,9 +2355,9 @@ def _rollback_optimization(kv):
 
     """
     logger.warning(
-        "This saved FastText model was trained with an optimization we no longer support. "
-        "The current Gensim version automatically reverses this optimization during loading. "
-        "Save the loaded model to a new file and reload to suppress this message."
+        'This saved FastText model was trained with an optimization we no longer support. '
+        'The current Gensim version automatically reverses this optimization during loading. '
+        'Save the loaded model to a new file and reload to suppress this message.'
     )
     assert hasattr(kv, 'hash2index')
     assert hasattr(kv, 'num_ngram_vectors')
@@ -2518,9 +2475,5 @@ def _try_upgrade(wv):
         _rollback_optimization(wv)
 
     if not hasattr(wv, 'compatible_hash'):
-        logger.warning(
-            "This older model was trained with a buggy hash function. "
-            "The model will continue to work, but consider training it "
-            "from scratch."
-        )
+        logger.warning('This older model was trained with a buggy hash function. The model will continue to work, but consider training it from scratch.')
         wv.compatible_hash = False

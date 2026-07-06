@@ -58,19 +58,19 @@ Examples
 
 """
 
-import sys
-import os
-import logging
-from collections import defaultdict
 import functools as ft
 import itertools as it
-from math import log
+import logging
+import os
 import pickle
+import sys
+from collections import defaultdict
+from math import log
+
 import six
+from six import PY2, iteritems, next, string_types
 
-from six import iteritems, string_types, PY2, next
-
-from gensim import utils, interfaces
+from gensim import interfaces, utils
 
 if PY2:
     from inspect import getargspec
@@ -118,6 +118,7 @@ def _is_single(obj):
 
 class SentenceAnalyzer(object):
     """Base util class for :class:`~gensim.models.phrases.Phrases` and :class:`~gensim.models.phrases.Phraser`."""
+
     def score_item(self, worda, wordb, components, scorer):
         """Get bi-gram score statistics.
 
@@ -143,10 +144,7 @@ class SentenceAnalyzer(object):
         if worda in vocab and wordb in vocab:
             bigram = self.delimiter.join(components)
             if bigram in vocab:
-                return scorer(
-                    worda_count=float(vocab[worda]),
-                    wordb_count=float(vocab[wordb]),
-                    bigram_count=float(vocab[bigram]))
+                return scorer(worda_count=float(vocab[worda]), wordb_count=float(vocab[wordb]), bigram_count=float(vocab[bigram]))
         return -1
 
     def analyze_sentence(self, sentence, threshold, common_terms, scorer):
@@ -230,7 +228,7 @@ class PhrasesTransformation(interfaces.TransformationABC):
         # update older models
         # if value in phrasegrams dict is a tuple, load only the scores.
 
-        for component, score in getattr(model, "phrasegrams", {}).items():
+        for component, score in getattr(model, 'phrasegrams', {}).items():
             if isinstance(score, tuple):
                 frequency, score_val = score
                 model.phrasegrams[component] = score_val
@@ -252,10 +250,9 @@ class PhrasesTransformation(interfaces.TransformationABC):
                     logger.info('setting scoring method to npmi_scorer pluggable scoring method for compatibility')
                     model.scoring = npmi_scorer
                 else:
-                    raise ValueError(
-                        'failed to load %s model with unknown scoring setting %s' % (cls.__name__, model.scoring))
+                    raise ValueError('failed to load %s model with unknown scoring setting %s' % (cls.__name__, model.scoring))
         # if there is no common_terms attribute, initialize
-        if not hasattr(model, "common_terms"):
+        if not hasattr(model, 'common_terms'):
             logger.info('older version of %s loaded without common_terms attribute', cls.__name__)
             logger.info('setting common_terms to empty set')
             model.common_terms = frozenset()
@@ -263,7 +260,7 @@ class PhrasesTransformation(interfaces.TransformationABC):
 
 
 def _sentence2token(phrase_class, sentence):
-    """ Convert the input tokens `sentence` into tokens where detected bigrams are joined by a selected delimiter.
+    """Convert the input tokens `sentence` into tokens where detected bigrams are joined by a selected delimiter.
 
     This function is used by: meth:`~gensim.models.phrases.Phrases.__getitem__` and
     meth:`~gensim.models.phrases.Phraser.__getitem__`
@@ -294,11 +291,11 @@ def _sentence2token(phrase_class, sentence):
             phrase_class.scoring,
             len_vocab=float(len(phrase_class.vocab)),
             min_count=float(phrase_class.min_count),
-            corpus_word_count=float(phrase_class.corpus_word_count))
+            corpus_word_count=float(phrase_class.corpus_word_count),
+        )
     else:
         scorer = None
-    bigrams = phrase_class.analyze_sentence(sentence, threshold=phrase_class.threshold,
-        common_terms=phrase_class.common_terms, scorer=scorer)
+    bigrams = phrase_class.analyze_sentence(sentence, threshold=phrase_class.threshold, common_terms=phrase_class.common_terms, scorer=scorer)
 
     new_s = []
     for words, score in bigrams:
@@ -311,9 +308,17 @@ def _sentence2token(phrase_class, sentence):
 class Phrases(SentenceAnalyzer, PhrasesTransformation):
     """Detect phrases based on collocation counts."""
 
-    def __init__(self, sentences=None, min_count=5, threshold=10.0,
-                 max_vocab_size=40000000, delimiter=b'_', progress_per=10000,
-                 scoring='default', common_terms=frozenset()):
+    def __init__(
+        self,
+        sentences=None,
+        min_count=5,
+        threshold=10.0,
+        max_vocab_size=40000000,
+        delimiter=b'_',
+        progress_per=10000,
+        scoring='default',
+        common_terms=frozenset(),
+    ):
         """
 
         Parameters
@@ -367,12 +372,12 @@ class Phrases(SentenceAnalyzer, PhrasesTransformation):
 
         """
         if min_count <= 0:
-            raise ValueError("min_count should be at least 1")
+            raise ValueError('min_count should be at least 1')
 
         if threshold <= 0 and scoring == 'default':
-            raise ValueError("threshold should be positive for default scoring")
+            raise ValueError('threshold should be positive for default scoring')
         if scoring == 'npmi' and (threshold < -1 or threshold > 1):
-            raise ValueError("threshold should be between -1 and 1 for npmi scoring")
+            raise ValueError('threshold should be between -1 and 1 for npmi scoring')
 
         # set scoring based on string
         # intentially override the value of the scoring parameter rather than set self.scoring here,
@@ -386,9 +391,7 @@ class Phrases(SentenceAnalyzer, PhrasesTransformation):
             else:
                 raise ValueError('unknown scoring method string %s specified' % (scoring))
 
-        scoring_parameters = [
-            'worda_count', 'wordb_count', 'bigram_count', 'len_vocab', 'min_count', 'corpus_word_count'
-        ]
+        scoring_parameters = ['worda_count', 'wordb_count', 'bigram_count', 'len_vocab', 'min_count', 'corpus_word_count']
         if callable(scoring):
             if all(parameter in getargspec(scoring)[0] for parameter in scoring_parameters):
                 self.scoring = scoring
@@ -412,8 +415,8 @@ class Phrases(SentenceAnalyzer, PhrasesTransformation):
         except pickle.PickleError:
             raise pickle.PickleError('unable to pickle custom Phrases scoring function')
         finally:
-            del(test_pickle)
-            del(load_pickle)
+            del test_pickle
+            del load_pickle
 
         if sentences is not None:
             self.add_vocab(sentences)
@@ -440,14 +443,16 @@ class Phrases(SentenceAnalyzer, PhrasesTransformation):
 
     def __str__(self):
         """Get short string representation of this phrase detector."""
-        return "%s<%i vocab, min_count=%s, threshold=%s, max_vocab_size=%s>" % (
-            self.__class__.__name__, len(self.vocab), self.min_count,
-            self.threshold, self.max_vocab_size
+        return '%s<%i vocab, min_count=%s, threshold=%s, max_vocab_size=%s>' % (
+            self.__class__.__name__,
+            len(self.vocab),
+            self.min_count,
+            self.threshold,
+            self.max_vocab_size,
         )
 
     @staticmethod
-    def learn_vocab(sentences, max_vocab_size, delimiter=b'_', progress_per=10000,
-                    common_terms=frozenset()):
+    def learn_vocab(sentences, max_vocab_size, delimiter=b'_', progress_per=10000, common_terms=frozenset()):
         """Collect unigram/bigram counts from the `sentences` iterable.
 
         Parameters
@@ -494,14 +499,16 @@ class Phrases(SentenceAnalyzer, PhrasesTransformation):
         """
         sentence_no = -1
         total_words = 0
-        logger.info("collecting all words and their counts")
+        logger.info('collecting all words and their counts')
         vocab = defaultdict(int)
         min_reduce = 1
         for sentence_no, sentence in enumerate(sentences):
             if sentence_no % progress_per == 0:
                 logger.info(
-                    "PROGRESS: at sentence #%i, processed %i words and %i word types",
-                    sentence_no, total_words, len(vocab),
+                    'PROGRESS: at sentence #%i, processed %i words and %i word types',
+                    sentence_no,
+                    total_words,
+                    len(vocab),
                 )
             s = [utils.any2utf8(w) for w in sentence]
             last_uncommon = None
@@ -522,10 +529,7 @@ class Phrases(SentenceAnalyzer, PhrasesTransformation):
                 utils.prune_vocab(vocab, min_reduce)
                 min_reduce += 1
 
-        logger.info(
-            "collected %i word types from a corpus of %i words (unigram + bigrams) and %i sentences",
-            len(vocab), total_words, sentence_no + 1
-        )
+        logger.info('collected %i word types from a corpus of %i words (unigram + bigrams) and %i sentences', len(vocab), total_words, sentence_no + 1)
         return min_reduce, vocab, total_words
 
     def add_vocab(self, sentences):
@@ -562,22 +566,21 @@ class Phrases(SentenceAnalyzer, PhrasesTransformation):
         # directly, but gives the new sentences a fighting chance to collect
         # sufficient counts, before being pruned out by the (large) accumulated
         # counts collected in previous learn_vocab runs.
-        min_reduce, vocab, total_words = self.learn_vocab(
-            sentences, self.max_vocab_size, self.delimiter, self.progress_per, self.common_terms)
+        min_reduce, vocab, total_words = self.learn_vocab(sentences, self.max_vocab_size, self.delimiter, self.progress_per, self.common_terms)
 
         self.corpus_word_count += total_words
         if len(self.vocab) > 0:
-            logger.info("merging %i counts into %s", len(vocab), self)
+            logger.info('merging %i counts into %s', len(vocab), self)
             self.min_reduce = max(self.min_reduce, min_reduce)
             for word, count in iteritems(vocab):
                 self.vocab[word] += count
             if len(self.vocab) > self.max_vocab_size:
                 utils.prune_vocab(self.vocab, self.min_reduce)
                 self.min_reduce += 1
-            logger.info("merged %s", self)
+            logger.info('merged %s', self)
         else:
             # in common case, avoid doubling gigantic dict
-            logger.info("using %i counts as vocab in %s", len(vocab), self)
+            logger.info('using %i counts as vocab in %s', len(vocab), self)
             self.vocab = vocab
 
     def export_phrases(self, sentences, out_delimiter=b' ', as_tuples=False):
@@ -781,7 +784,7 @@ def pseudocorpus(source_vocab, sep, common_terms=frozenset()):
             if unigrams[i - 1] not in common_terms:
                 # do not join common terms
                 cterms = list(it.takewhile(lambda w: w in common_terms, unigrams[i:]))
-                tail = unigrams[i + len(cterms):]
+                tail = unigrams[i + len(cterms) :]
                 components = [sep.join(unigrams[:i])] + cterms
                 if tail:
                     components.append(sep.join(tail))
@@ -930,7 +933,7 @@ class Phraser(SentenceAnalyzer, PhrasesTransformation):
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s : %(threadName)s : %(levelname)s : %(message)s', level=logging.INFO)
-    logging.info("running %s", " ".join(sys.argv))
+    logging.info('running %s', ' '.join(sys.argv))
 
     # check and process cmdline input
     program = os.path.basename(sys.argv[0])
@@ -941,9 +944,10 @@ if __name__ == '__main__':
 
     from gensim.models import Phrases  # noqa:F811 for pickle
     from gensim.models.word2vec import Text8Corpus
+
     sentences = Text8Corpus(infile)
 
     # test_doc = LineSentence('test/test_data/testcorpus.txt')
     bigram = Phrases(sentences, min_count=5, threshold=100)
     for s in bigram[sentences]:
-        print(utils.to_utf8(u' '.join(s)))
+        print(utils.to_utf8(' '.join(s)))

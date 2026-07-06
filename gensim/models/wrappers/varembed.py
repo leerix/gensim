@@ -15,6 +15,7 @@ Notes
 """
 
 import logging
+
 import numpy as np
 
 from gensim import utils
@@ -33,6 +34,7 @@ class VarEmbed(KeyedVectors):
     this allows to load pre-trained models only.
 
     """
+
     def __init__(self):
         self.vector_size = 0
         self.vocab_size = 0
@@ -56,7 +58,7 @@ class VarEmbed(KeyedVectors):
         """
         result = cls()
         if vectors is None:
-            raise Exception("Please provide vectors binary to load varembed model")
+            raise Exception('Please provide vectors binary to load varembed model')
         d = utils.unpickle(vectors)
         word_to_ix = d['word_to_ix']
         morpho_to_ix = d['morpho_to_ix']
@@ -66,6 +68,7 @@ class VarEmbed(KeyedVectors):
         if morfessor_model:
             try:
                 import morfessor
+
                 morfessor_model = morfessor.MorfessorIO().read_binary_model_file(morfessor_model)
                 result.add_morphemes_to_embeddings(morfessor_model, morpho_embeddings, morpho_to_ix)
             except ImportError:
@@ -87,7 +90,7 @@ class VarEmbed(KeyedVectors):
             Mapping word to index.
 
         """
-        logger.info("Loading the vocabulary")
+        logger.info('Loading the vocabulary')
         self.vocab = {}
         self.index2word = []
         counts = {}
@@ -97,13 +100,13 @@ class VarEmbed(KeyedVectors):
         self.vector_size = word_embeddings.shape[1]
         self.vectors = np.zeros((self.vocab_size, self.vector_size))
         self.index2word = [None] * self.vocab_size
-        logger.info("Corpus has %i words", len(self.vocab))
+        logger.info('Corpus has %i words', len(self.vocab))
         for word_id, word in enumerate(counts):
             self.vocab[word] = Vocab(index=word_id, count=counts[word])
             self.vectors[word_id] = word_embeddings[word_to_ix[word]]
             self.index2word[word_id] = word
-        assert((len(self.vocab), self.vector_size) == self.vectors.shape)
-        logger.info("Loaded matrix of %d size and %d dimensions", self.vocab_size, self.vector_size)
+        assert (len(self.vocab), self.vector_size) == self.vectors.shape
+        logger.info('Loaded matrix of %d size and %d dimensions', self.vocab_size, self.vector_size)
 
     def add_morphemes_to_embeddings(self, morfessor_model, morpho_embeddings, morpho_to_ix):
         """Include morpheme embeddings into vectors.
@@ -119,11 +122,6 @@ class VarEmbed(KeyedVectors):
 
         """
         for word in self.vocab:
-            morpheme_embedding = np.array(
-                [
-                    morpho_embeddings[morpho_to_ix.get(m, -1)]
-                    for m in morfessor_model.viterbi_segment(word)[0]
-                ]
-            ).sum(axis=0)
+            morpheme_embedding = np.array([morpho_embeddings[morpho_to_ix.get(m, -1)] for m in morfessor_model.viterbi_segment(word)[0]]).sum(axis=0)
             self.vectors[self.vocab[word].index] += morpheme_embedding
-        logger.info("Added morphemes to word vectors")
+        logger.info('Added morphemes to word vectors')

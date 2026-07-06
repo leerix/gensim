@@ -12,13 +12,12 @@ Utilities for creating 2-D visualizations of Poincare models and Poincare distan
 """
 
 import logging
-
 from collections import Counter
+
 import numpy as np
 import plotly.graph_objs as go
 
 from gensim.models.poincare import PoincareKeyedVectors
-
 
 logger = logging.getLogger(__name__)
 
@@ -54,13 +53,7 @@ def poincare_2d_visualization(model, tree, figure_title, num_nodes=50, show_node
     node_labels = model.kv.index2word
     nodes_x = list(vectors[:, 0])
     nodes_y = list(vectors[:, 1])
-    nodes = go.Scatter(
-        x=nodes_x, y=nodes_y,
-        mode='markers',
-        marker=dict(color='rgb(30, 100, 200)'),
-        text=node_labels,
-        textposition='bottom center'
-    )
+    nodes = go.Scatter(x=nodes_x, y=nodes_y, mode='markers', marker=dict(color='rgb(30, 100, 200)'), text=node_labels, textposition='bottom center')
 
     nodes_x, nodes_y, node_labels = [], [], []
     for node in show_node_labels:
@@ -69,11 +62,7 @@ def poincare_2d_visualization(model, tree, figure_title, num_nodes=50, show_node
         nodes_y.append(vector[1])
         node_labels.append(node)
     nodes_with_labels = go.Scatter(
-        x=nodes_x, y=nodes_y,
-        mode='markers+text',
-        marker=dict(color='rgb(200, 100, 200)'),
-        text=node_labels,
-        textposition='bottom center'
+        x=nodes_x, y=nodes_y, mode='markers+text', marker=dict(color='rgb(200, 100, 200)'), text=node_labels, textposition='bottom center'
     )
 
     node_out_degrees = Counter(hypernym_pair[1] for hypernym_pair in tree)
@@ -85,18 +74,15 @@ def poincare_2d_visualization(model, tree, figure_title, num_nodes=50, show_node
     edges_x = []
     edges_y = []
     for u, v in tree:
-        if not(u in chosen_nodes or v in chosen_nodes):
+        if not (u in chosen_nodes or v in chosen_nodes):
             continue
         vector_u = model.kv[u]
         vector_v = model.kv[v]
         edges_x += [vector_u[0], vector_v[0], None]
         edges_y += [vector_u[1], vector_v[1], None]
-    edges = go.Scatter(
-        x=edges_x, y=edges_y, mode="lines", hoverinfo='none',
-        line=dict(color='rgb(50,50,50)', width=1))
+    edges = go.Scatter(x=edges_x, y=edges_y, mode='lines', hoverinfo='none', line=dict(color='rgb(50,50,50)', width=1))
 
-    layout = go.Layout(
-        title=figure_title, showlegend=False, hovermode='closest', width=800, height=800)
+    layout = go.Layout(title=figure_title, showlegend=False, hovermode='closest', width=800, height=800)
     return go.Figure(data=[edges, nodes, nodes_with_labels], layout=layout)
 
 
@@ -138,7 +124,7 @@ def poincare_distance_heatmap(origin_point, x_range=(-1.0, 1.0), y_range=(-1.0, 
     x_axis_values = np.linspace(x_range[0], x_range[1], num=num_points)
     y_axis_values = np.linspace(x_range[0], x_range[1], num=num_points)
     x, y = np.meshgrid(x_axis_values, y_axis_values)
-    all_points = np.dstack((x, y)).swapaxes(1, 2).swapaxes(0, 1).reshape(2, num_points ** 2).T
+    all_points = np.dstack((x, y)).swapaxes(1, 2).swapaxes(0, 1).reshape(2, num_points**2).T
     norms = np.linalg.norm(all_points, axis=1)
     all_points = all_points[norms < 1]
 
@@ -154,13 +140,9 @@ def poincare_distance_heatmap(origin_point, x_range=(-1.0, 1.0), y_range=(-1.0, 
             color=all_distances,
             colorscale='Viridis',
             showscale=True,
-            colorbar=go.ColorBar(
-                title='Poincare Distance'
-            ),
+            colorbar=go.ColorBar(title='Poincare Distance'),
         ),
-        text=[
-            'Distance from (%.2f, %.2f): %.2f' % (origin_point[0], origin_point[1], d)
-            for d in all_distances],
+        text=['Distance from (%.2f, %.2f): %.2f' % (origin_point[0], origin_point[1], d) for d in all_distances],
         name='',  # To avoid the default 'trace 0'
     )
 
@@ -169,10 +151,7 @@ def poincare_distance_heatmap(origin_point, x_range=(-1.0, 1.0), y_range=(-1.0, 
         y=[origin_point[1]],
         name='Distance from (%.2f, %.2f)' % (origin_point[0], origin_point[1]),
         mode='markers+text',
-        marker=dict(
-            size='10',
-            color='rgb(200, 50, 50)'
-        )
+        marker=dict(size='10', color='rgb(200, 50, 50)'),
     )
 
     layout = go.Layout(

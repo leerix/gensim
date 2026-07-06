@@ -72,35 +72,35 @@ And on analogies:
 and so on.
 
 """
+
 from __future__ import division  # py3 "true division"
 
 import logging
 
 try:
-    from queue import Queue, Empty
+    from queue import Empty, Queue
 except ImportError:
-    from Queue import Queue, Empty  # noqa:F401
+    from Queue import Empty, Queue  # noqa:F401
 
 # If pyemd C extension is available, import it.
 # If pyemd is attempted to be used, but isn't installed, ImportError will be raised in wmdistance
 try:
     from pyemd import emd
+
     PYEMD_EXT = True
 except (ImportError, ValueError):
     PYEMD_EXT = False
 
-from numpy import dot, zeros, dtype, float32 as REAL,\
-    double, array, vstack, fromstring, sqrt, newaxis,\
-    ndarray, sum as np_sum, prod, ascontiguousarray,\
-    argmax
 import numpy as np
-
-from gensim import utils, matutils  # utility fnc for pickling, common scipy operations etc
-from gensim.corpora.dictionary import Dictionary
-from six import string_types, iteritems
-from six.moves import range
+from numpy import argmax, array, ascontiguousarray, dot, double, dtype, fromstring, ndarray, newaxis, prod, sqrt, vstack, zeros
+from numpy import float32 as REAL
+from numpy import sum as np_sum
 from scipy import stats
+from six import iteritems, string_types
+from six.moves import range
 
+from gensim import matutils, utils  # utility fnc for pickling, common scipy operations etc
+from gensim.corpora.dictionary import Dictionary
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ class Vocab(object):
 
     def __str__(self):
         vals = ['%s:%r' % (key, self.__dict__[key]) for key in sorted(self.__dict__) if not key.startswith('_')]
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(vals))
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(vals))
 
 
 class KeyedVectorsBase(utils.SaveLoad):
@@ -153,25 +153,24 @@ class KeyedVectorsBase(utils.SaveLoad):
             total_vec = len(self.vocab)
         vector_size = self.syn0.shape[1]
         if fvocab is not None:
-            logger.info("storing vocabulary in %s", fvocab)
+            logger.info('storing vocabulary in %s', fvocab)
             with utils.open(fvocab, 'wb') as vout:
                 for word, vocab in sorted(iteritems(self.vocab), key=lambda item: -item[1].count):
-                    vout.write(utils.to_utf8("%s %s\n" % (word, vocab.count)))
-        logger.info("storing %sx%s projection weights into %s", total_vec, vector_size, fname)
+                    vout.write(utils.to_utf8('%s %s\n' % (word, vocab.count)))
+        logger.info('storing %sx%s projection weights into %s', total_vec, vector_size, fname)
         assert (len(self.vocab), vector_size) == self.syn0.shape
         with utils.open(fname, 'wb') as fout:
-            fout.write(utils.to_utf8("%s %s\n" % (total_vec, vector_size)))
+            fout.write(utils.to_utf8('%s %s\n' % (total_vec, vector_size)))
             # store in sorted order: most frequent words at the top
             for word, vocab in sorted(iteritems(self.vocab), key=lambda item: -item[1].count):
                 row = self.syn0[vocab.index]
                 if binary:
-                    fout.write(utils.to_utf8(word) + b" " + row.tostring())
+                    fout.write(utils.to_utf8(word) + b' ' + row.tostring())
                 else:
-                    fout.write(utils.to_utf8("%s %s\n" % (word, ' '.join("%f" % val for val in row))))
+                    fout.write(utils.to_utf8('%s %s\n' % (word, ' '.join('%f' % val for val in row))))
 
     @classmethod
-    def load_word2vec_format(cls, fname, fvocab=None, binary=False, encoding='utf8', unicode_errors='strict',
-                             limit=None, datatype=REAL):
+    def load_word2vec_format(cls, fname, fvocab=None, binary=False, encoding='utf8', unicode_errors='strict', limit=None, datatype=REAL):
         """
         Load the input-hidden weight matrix from the original C word2vec-tool format.
 
@@ -202,14 +201,14 @@ class KeyedVectorsBase(utils.SaveLoad):
         """
         counts = None
         if fvocab is not None:
-            logger.info("loading word counts from %s", fvocab)
+            logger.info('loading word counts from %s', fvocab)
             counts = {}
             with utils.open(fvocab, 'rb') as fin:
                 for line in fin:
                     word, count = utils.to_unicode(line).strip().split()
                     counts[word] = int(count)
 
-        logger.info("loading projection weights from %s", fname)
+        logger.info('loading projection weights from %s', fname)
         with utils.open(fname, 'rb') as fin:
             header = utils.to_unicode(fin.readline(), encoding=encoding)
             vocab_size, vector_size = (int(x) for x in header.split())  # throws for invalid file format
@@ -247,7 +246,7 @@ class KeyedVectorsBase(utils.SaveLoad):
                         if ch == b' ':
                             break
                         if ch == b'':
-                            raise EOFError("unexpected end of input; is count incorrect or file otherwise damaged?")
+                            raise EOFError('unexpected end of input; is count incorrect or file otherwise damaged?')
                         if ch != b'\n':  # ignore newlines in front of words (some binary files have)
                             word.append(ch)
                     word = utils.to_unicode(b''.join(word), encoding=encoding, errors=unicode_errors)
@@ -257,21 +256,18 @@ class KeyedVectorsBase(utils.SaveLoad):
                 for line_no in range(vocab_size):
                     line = fin.readline()
                     if line == b'':
-                        raise EOFError("unexpected end of input; is count incorrect or file otherwise damaged?")
-                    parts = utils.to_unicode(line.rstrip(), encoding=encoding, errors=unicode_errors).split(" ")
+                        raise EOFError('unexpected end of input; is count incorrect or file otherwise damaged?')
+                    parts = utils.to_unicode(line.rstrip(), encoding=encoding, errors=unicode_errors).split(' ')
                     if len(parts) != vector_size + 1:
-                        raise ValueError("invalid vector on line %s (is this really the text format?)" % line_no)
+                        raise ValueError('invalid vector on line %s (is this really the text format?)' % line_no)
                     word, weights = parts[0], [REAL(x) for x in parts[1:]]
                     add_word(word, weights)
         if result.syn0.shape[0] != len(result.vocab):
-            logger.info(
-                "duplicate words detected, shrinking matrix size from %i to %i",
-                result.syn0.shape[0], len(result.vocab)
-            )
+            logger.info('duplicate words detected, shrinking matrix size from %i to %i', result.syn0.shape[0], len(result.vocab))
             result.syn0 = ascontiguousarray(result.syn0[: len(result.vocab)])
         assert (len(result.vocab), vector_size) == result.syn0.shape
 
-        logger.info("loaded %s matrix from %s", result.syn0.shape, fname)
+        logger.info('loaded %s matrix from %s', result.syn0.shape, fname)
         return result
 
     def similarity(self, w1, w2):
@@ -519,14 +515,8 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
             positive = [positive]
 
         # add weights for each word, if not already present; default to 1.0 for positive and -1.0 for negative words
-        positive = [
-            (word, 1.0) if isinstance(word, string_types + (ndarray,)) else word
-            for word in positive
-        ]
-        negative = [
-            (word, -1.0) if isinstance(word, string_types + (ndarray,)) else word
-            for word in negative
-        ]
+        positive = [(word, 1.0) if isinstance(word, string_types + (ndarray,)) else word for word in positive]
+        negative = [(word, -1.0) if isinstance(word, string_types + (ndarray,)) else word for word in negative]
 
         # compute the weighted average of all words
         all_words, mean = set(), []
@@ -538,7 +528,7 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
                 if word in self.vocab:
                     all_words.add(self.vocab[word].index)
         if not mean:
-            raise ValueError("cannot compute similarity with no input")
+            raise ValueError('cannot compute similarity with no input')
         mean = matutils.unitvec(array(mean).mean(axis=0)).astype(REAL)
 
         if indexer is not None:
@@ -629,7 +619,7 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
         """
 
         if not PYEMD_EXT:
-            raise ImportError("Please install pyemd Python package to compute WMD.")
+            raise ImportError('Please install pyemd Python package to compute WMD.')
 
         # Remove out-of-vocabulary words.
         len_pre_oov1 = len(document1)
@@ -642,10 +632,7 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
             logger.info('Removed %d and %d OOV words from document 1 and 2 (respectively).', diff1, diff2)
 
         if len(document1) == 0 or len(document2) == 0:
-            logger.info(
-                "At least one of the documents had no words that werein the vocabulary. "
-                "Aborting (returning inf)."
-            )
+            logger.info('At least one of the documents had no words that werein the vocabulary. Aborting (returning inf).')
             return float('inf')
 
         dictionary = Dictionary(documents=[document1, document2])
@@ -666,7 +653,7 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
                 if t1 not in docset1 or t2 not in docset2:
                     continue
                 # Compute Euclidean distance between word vectors.
-                distance_matrix[i, j] = sqrt(np_sum((self[t1] - self[t2])**2))
+                distance_matrix[i, j] = sqrt(np_sum((self[t1] - self[t2]) ** 2))
 
         if np_sum(distance_matrix) == 0.0:
             # `emd` gets stuck if the distance matrix contains only zeros.
@@ -723,22 +710,13 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
             # allow calls like most_similar_cosmul('dog'), as a shorthand for most_similar_cosmul(['dog'])
             positive = [positive]
 
-        all_words = {
-            self.vocab[word].index for word in positive + negative
-            if not isinstance(word, ndarray) and word in self.vocab
-            }
+        all_words = {self.vocab[word].index for word in positive + negative if not isinstance(word, ndarray) and word in self.vocab}
 
-        positive = [
-            self.word_vec(word, use_norm=True) if isinstance(word, string_types) else word
-            for word in positive
-        ]
-        negative = [
-            self.word_vec(word, use_norm=True) if isinstance(word, string_types) else word
-            for word in negative
-        ]
+        positive = [self.word_vec(word, use_norm=True) if isinstance(word, string_types) else word for word in positive]
+        negative = [self.word_vec(word, use_norm=True) if isinstance(word, string_types) else word for word in negative]
 
         if not positive:
-            raise ValueError("cannot compute similarity with no input")
+            raise ValueError('cannot compute similarity with no input')
 
         # equation (4) of Levy & Goldberg "Linguistic Regularities...",
         # with distances shifted to [0,1] per footnote (7)
@@ -768,9 +746,9 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
         used_words = [word for word in words if word in self]
         if len(used_words) != len(words):
             ignored_words = set(words) - set(used_words)
-            logger.warning("vectors for words %s are not present in the model, ignoring these words", ignored_words)
+            logger.warning('vectors for words %s are not present in the model, ignoring these words', ignored_words)
         if not used_words:
-            raise ValueError("cannot select a word from an empty list")
+            raise ValueError('cannot select a word from an empty list')
         vectors = vstack(self.word_vec(word, use_norm=True) for word in used_words).astype(REAL)
         mean = matutils.unitvec(vectors.mean(axis=0)).astype(REAL)
         dists = dot(vectors, mean)
@@ -891,7 +869,7 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
             True
 
         """
-        if not(len(ws1) and len(ws2)):
+        if not (len(ws1) and len(ws2)):
             raise ZeroDivisionError('At least one of the passed list is empty.')
         v1 = [self[word] for word in ws1]
         v2 = [self[word] for word in ws2]
@@ -901,10 +879,7 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
     def log_accuracy(section):
         correct, incorrect = len(section['correct']), len(section['incorrect'])
         if correct + incorrect > 0:
-            logger.info(
-                "%s: %.1f%% (%i/%i)",
-                section['section'], 100.0 * correct / (correct + incorrect), correct, correct + incorrect
-            )
+            logger.info('%s: %.1f%% (%i/%i)', section['section'], 100.0 * correct / (correct + incorrect), correct, correct + incorrect)
 
     def accuracy(self, questions, restrict_vocab=30000, most_similar=most_similar, case_insensitive=True):
         """
@@ -946,17 +921,17 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
                     section = {'section': line.lstrip(': ').strip(), 'correct': [], 'incorrect': []}
                 else:
                     if not section:
-                        raise ValueError("missing section header before line #%i in %s" % (line_no, questions))
+                        raise ValueError('missing section header before line #%i in %s' % (line_no, questions))
                     try:
                         if case_insensitive:
                             a, b, c, expected = [word.upper() for word in line.split()]
                         else:
                             a, b, c, expected = [word for word in line.split()]
                     except ValueError:
-                        logger.info("skipping invalid line #%i in %s", line_no, questions)
+                        logger.info('skipping invalid line #%i in %s', line_no, questions)
                         continue
                     if a not in ok_vocab or b not in ok_vocab or c not in ok_vocab or expected not in ok_vocab:
-                        logger.debug("skipping line #%i with OOV words: %s", line_no, line.strip())
+                        logger.debug('skipping line #%i with OOV words: %s', line_no, line.strip())
                         continue
 
                     original_vocab = self.vocab
@@ -970,7 +945,7 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
                         predicted = self.index2word[index].upper() if case_insensitive else self.index2word[index]
                         if predicted in ok_vocab and predicted not in ignore:
                             if predicted != expected:
-                                logger.debug("%s: expected %s, predicted %s", line.strip(), expected, predicted)
+                                logger.debug('%s: expected %s, predicted %s', line.strip(), expected, predicted)
                             break
                     if predicted == expected:
                         section['correct'].append((a, b, c, expected))
@@ -996,8 +971,7 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
         logger.info('Spearman rank-order correlation coefficient against %s: %.4f', pairs, spearman[0])
         logger.info('Pairs with unknown words ratio: %.1f%%', oov)
 
-    def evaluate_word_pairs(self, pairs, delimiter='\t', restrict_vocab=300000,
-                            case_insensitive=True, dummy4unknown=False):
+    def evaluate_word_pairs(self, pairs, delimiter='\t', restrict_vocab=300000, case_insensitive=True, dummy4unknown=False):
         """
         Compute correlation of the model with human similarity judgments. `pairs` is a filename of a dataset where
         lines are 3-tuples, each consisting of a word pair and a similarity value, separated by `delimiter`.
@@ -1064,10 +1038,7 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
         oov_ratio = float(oov) / (len(similarity_gold) + oov) * 100
 
         logger.debug('Pearson correlation coefficient against %s: %f with p-value %f', pairs, pearson[0], pearson[1])
-        logger.debug(
-            'Spearman rank-order correlation coefficient against %s: %f with p-value %f',
-            pairs, spearman[0], spearman[1]
-        )
+        logger.debug('Spearman rank-order correlation coefficient against %s: %f with p-value %f', pairs, spearman[0], spearman[1])
         logger.debug('Pairs with unknown words: %d', oov)
         self.log_evaluate_word_pairs(pearson, spearman, oov_ratio, pairs)
         return pearson, spearman, oov_ratio
@@ -1084,13 +1055,13 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
 
         """
         if getattr(self, 'syn0norm', None) is None or replace:
-            logger.info("precomputing L2-norms of word weight vectors")
+            logger.info('precomputing L2-norms of word weight vectors')
             if replace:
                 for i in range(self.syn0.shape[0]):
                     self.syn0[i, :] /= sqrt((self.syn0[i, :] ** 2).sum(-1))
                 self.syn0norm = self.syn0
             else:
-                self.syn0norm = (self.syn0 / sqrt((self.syn0 ** 2).sum(-1))[..., newaxis]).astype(REAL)
+                self.syn0norm = (self.syn0 / sqrt((self.syn0**2).sum(-1))[..., newaxis]).astype(REAL)
 
     def get_keras_embedding(self, train_embeddings=False):
         """
@@ -1099,15 +1070,12 @@ class EuclideanKeyedVectors(KeyedVectorsBase):
         try:
             from keras.layers import Embedding
         except ImportError:
-            raise ImportError("Please install Keras to use this function")
+            raise ImportError('Please install Keras to use this function')
         weights = self.syn0
 
         # set `trainable` as `False` to use the pretrained word embedding
         # No extra mem usage here as `Embedding` layer doesn't create any new matrix for weights
-        layer = Embedding(
-            input_dim=weights.shape[0], output_dim=weights.shape[1],
-            weights=[weights], trainable=train_embeddings
-        )
+        layer = Embedding(input_dim=weights.shape[0], output_dim=weights.shape[1], weights=[weights], trainable=train_embeddings)
         return layer
 
 

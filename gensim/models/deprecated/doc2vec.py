@@ -65,24 +65,28 @@ try:
 except ImportError:
     from Queue import Queue  # noqa:F401
 
-from collections import namedtuple, defaultdict
+from collections import defaultdict, namedtuple
 from timeit import default_timer
 
-from numpy import zeros, sum as np_sum, add as np_add, concatenate, \
-    repeat as np_repeat, array, float32 as REAL, empty, ones, memmap as np_memmap, \
-    sqrt, newaxis, ndarray, dot, vstack, dtype, divide as np_divide, integer
+from numpy import add as np_add
+from numpy import array, concatenate, dot, dtype, empty, integer, ndarray, newaxis, ones, sqrt, vstack, zeros
+from numpy import divide as np_divide
+from numpy import float32 as REAL
+from numpy import memmap as np_memmap
+from numpy import repeat as np_repeat
+from numpy import sum as np_sum
+from six import integer_types, string_types
+from six.moves import range, zip
 
-from gensim import utils
-from gensim.utils import call_on_class_only, deprecated
-from gensim.models.deprecated.word2vec import Word2Vec, train_cbow_pair, train_sg_pair, train_batch_sg,\
-    MAX_WORDS_IN_BATCH
+from gensim import (
+    matutils,  # utility fnc for pickling, common scipy operations etc
+    utils,
+)
 from gensim.models.deprecated.keyedvectors import KeyedVectors
-from gensim.models.doc2vec import Doc2Vec as NewDoc2Vec
 from gensim.models.deprecated.old_saveload import SaveLoad
-
-from gensim import matutils  # utility fnc for pickling, common scipy operations etc
-from six.moves import zip, range
-from six import string_types, integer_types
+from gensim.models.deprecated.word2vec import MAX_WORDS_IN_BATCH, Word2Vec, train_batch_sg, train_cbow_pair, train_sg_pair
+from gensim.models.doc2vec import Doc2Vec as NewDoc2Vec
+from gensim.utils import call_on_class_only, deprecated
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +117,7 @@ def load_old_doc2vec(*args, **kwargs):
         'epochs': old_model.iter,
         'sorted_vocab': old_model.__dict__.get('sorted_vocab', 1),
         'batch_words': old_model.__dict__.get('batch_words', MAX_WORDS_IN_BATCH),
-        'compute_loss': old_model.__dict__.get('compute_loss', None)
+        'compute_loss': old_model.__dict__.get('compute_loss', None),
     }
     new_model = NewDoc2Vec(**params)
     # set word2vec trainables attributes
@@ -168,9 +172,21 @@ def load_old_doc2vec(*args, **kwargs):
     return new_model
 
 
-def train_document_dbow(model, doc_words, doctag_indexes, alpha, work=None,
-                        train_words=False, learn_doctags=True, learn_words=True, learn_hidden=True,
-                        word_vectors=None, word_locks=None, doctag_vectors=None, doctag_locks=None):
+def train_document_dbow(
+    model,
+    doc_words,
+    doctag_indexes,
+    alpha,
+    work=None,
+    train_words=False,
+    learn_doctags=True,
+    learn_words=True,
+    learn_hidden=True,
+    word_vectors=None,
+    word_locks=None,
+    doctag_vectors=None,
+    doctag_locks=None,
+):
     """
     Update distributed bag of words model ("PV-DBOW") by training on a single document.
 
@@ -202,16 +218,34 @@ def train_document_dbow(model, doc_words, doctag_indexes, alpha, work=None,
     for doctag_index in doctag_indexes:
         for word in doc_words:
             train_sg_pair(
-                model, word, doctag_index, alpha, learn_vectors=learn_doctags, learn_hidden=learn_hidden,
-                context_vectors=doctag_vectors, context_locks=doctag_locks
+                model,
+                word,
+                doctag_index,
+                alpha,
+                learn_vectors=learn_doctags,
+                learn_hidden=learn_hidden,
+                context_vectors=doctag_vectors,
+                context_locks=doctag_locks,
             )
 
     return len(doc_words)
 
 
-def train_document_dm(model, doc_words, doctag_indexes, alpha, work=None, neu1=None,
-                      learn_doctags=True, learn_words=True, learn_hidden=True,
-                      word_vectors=None, word_locks=None, doctag_vectors=None, doctag_locks=None):
+def train_document_dm(
+    model,
+    doc_words,
+    doctag_indexes,
+    alpha,
+    work=None,
+    neu1=None,
+    learn_doctags=True,
+    learn_words=True,
+    learn_hidden=True,
+    word_vectors=None,
+    word_locks=None,
+    doctag_vectors=None,
+    doctag_locks=None,
+):
     """
     Update distributed memory model ("PV-DM") by training on a single document.
 
@@ -242,20 +276,18 @@ def train_document_dm(model, doc_words, doctag_indexes, alpha, work=None, neu1=N
     if doctag_locks is None:
         doctag_locks = model.docvecs.doctag_syn0_lockf
 
-    word_vocabs = [model.wv.vocab[w] for w in doc_words if w in model.wv.vocab
-                   and model.wv.vocab[w].sample_int > model.random.rand() * 2**32]
+    word_vocabs = [model.wv.vocab[w] for w in doc_words if w in model.wv.vocab and model.wv.vocab[w].sample_int > model.random.rand() * 2**32]
 
     for pos, word in enumerate(word_vocabs):
         reduced_window = model.random.randint(model.window)  # `b` in the original doc2vec code
         start = max(0, pos - model.window + reduced_window)
-        window_pos = enumerate(word_vocabs[start:(pos + model.window + 1 - reduced_window)], start)
+        window_pos = enumerate(word_vocabs[start : (pos + model.window + 1 - reduced_window)], start)
         word2_indexes = [word2.index for pos2, word2 in window_pos if pos2 != pos]
         l1 = np_sum(word_vectors[word2_indexes], axis=0) + np_sum(doctag_vectors[doctag_indexes], axis=0)
         count = len(word2_indexes) + len(doctag_indexes)
         if model.cbow_mean and count > 1:
             l1 /= count
-        neu1e = train_cbow_pair(model, word, word2_indexes, l1, alpha,
-                                learn_vectors=False, learn_hidden=learn_hidden)
+        neu1e = train_cbow_pair(model, word, word2_indexes, l1, alpha, learn_vectors=False, learn_hidden=learn_hidden)
         if not model.cbow_mean and count > 1:
             neu1e /= count
         if learn_doctags:
@@ -268,9 +300,21 @@ def train_document_dm(model, doc_words, doctag_indexes, alpha, work=None, neu1=N
     return len(word_vocabs)
 
 
-def train_document_dm_concat(model, doc_words, doctag_indexes, alpha, work=None, neu1=None, learn_doctags=True,
-                             learn_words=True, learn_hidden=True, word_vectors=None, word_locks=None,
-                             doctag_vectors=None, doctag_locks=None):
+def train_document_dm_concat(
+    model,
+    doc_words,
+    doctag_indexes,
+    alpha,
+    work=None,
+    neu1=None,
+    learn_doctags=True,
+    learn_words=True,
+    learn_hidden=True,
+    word_vectors=None,
+    word_locks=None,
+    doctag_vectors=None,
+    doctag_locks=None,
+):
     """
     Update distributed memory model ("PV-DM") by training on a single document, using a
     concatenation of the context window word vectors (rather than a sum or average).
@@ -298,8 +342,7 @@ def train_document_dm_concat(model, doc_words, doctag_indexes, alpha, work=None,
     if doctag_locks is None:
         doctag_locks = model.docvecs.doctag_syn0_lockf
 
-    word_vocabs = [model.wv.vocab[w] for w in doc_words if w in model.wv.vocab
-                   and model.wv.vocab[w].sample_int > model.random.rand() * 2**32]
+    word_vocabs = [model.wv.vocab[w] for w in doc_words if w in model.wv.vocab and model.wv.vocab[w].sample_int > model.random.rand() * 2**32]
     doctag_len = len(doctag_indexes)
     if doctag_len != model.dm_tag_count:
         return 0  # skip doc without expected number of doctag(s) (TODO: warn/pad?)
@@ -315,19 +358,17 @@ def train_document_dm_concat(model, doc_words, doctag_indexes, alpha, work=None,
 
     for pos in range(pre_pad_count, len(padded_document_indexes) - post_pad_count):
         word_context_indexes = (
-            padded_document_indexes[(pos - pre_pad_count): pos]  # preceding words
-            + padded_document_indexes[(pos + 1):(pos + 1 + post_pad_count)]  # following words
+            padded_document_indexes[(pos - pre_pad_count) : pos]  # preceding words
+            + padded_document_indexes[(pos + 1) : (pos + 1 + post_pad_count)]  # following words
         )
         predict_word = model.wv.vocab[model.wv.index2word[padded_document_indexes[pos]]]
         # numpy advanced-indexing copies; concatenate, flatten to 1d
         l1 = concatenate((doctag_vectors[doctag_indexes], word_vectors[word_context_indexes])).ravel()
-        neu1e = train_cbow_pair(model, predict_word, None, l1, alpha,
-                                learn_hidden=learn_hidden, learn_vectors=False)
+        neu1e = train_cbow_pair(model, predict_word, None, l1, alpha, learn_hidden=learn_hidden, learn_vectors=False)
 
         # filter by locks and shape for addition to source vectors
         e_locks = concatenate((doctag_locks[doctag_indexes], word_locks[word_context_indexes]))
-        neu1e_r = (neu1e.reshape(-1, model.vector_size)
-                   * np_repeat(e_locks, model.vector_size).reshape(-1, model.vector_size))
+        neu1e_r = neu1e.reshape(-1, model.vector_size) * np_repeat(e_locks, model.vector_size).reshape(-1, model.vector_size)
 
         if learn_doctags:
             np_add.at(doctag_vectors, doctag_indexes, neu1e_r[:doctag_len])
@@ -353,7 +394,7 @@ class TaggedDocument(namedtuple('TaggedDocument', 'words tags')):
 
 
 # for compatibility
-@deprecated("Class will be removed in 4.0.0, use TaggedDocument instead")
+@deprecated('Class will be removed in 4.0.0, use TaggedDocument instead')
 class LabeledSentence(TaggedDocument):
     pass
 
@@ -407,8 +448,7 @@ class DocvecsArray(SaveLoad):
 
     def indexed_doctags(self, doctag_tokens):
         """Return indexes and backing-arrays used in training examples."""
-        return ([self._int_index(index) for index in doctag_tokens if index in self],
-                self.doctag_syn0, self.doctag_syn0_lockf, doctag_tokens)
+        return ([self._int_index(index) for index in doctag_tokens if index in self], self.doctag_syn0, self.doctag_syn0_lockf, doctag_tokens)
 
     def trained_item(self, indexed_tuple):
         """Persist any changes made to the given indexes (matching tuple previously
@@ -422,7 +462,7 @@ class DocvecsArray(SaveLoad):
         else:
             return self.max_rawint + 1 + self.doctags[index].offset
 
-    @deprecated("Method will be removed in 4.0.0, use self.index_to_doctag instead")
+    @deprecated('Method will be removed in 4.0.0, use self.index_to_doctag instead')
     def _key_index(self, i_index, missing=None):
         """Return string index for given int index, if available"""
         return self.index_to_doctag(i_index)
@@ -479,12 +519,8 @@ class DocvecsArray(SaveLoad):
     def reset_weights(self, model):
         length = max(len(self.doctags), self.count)
         if self.mapfile_path:
-            self.doctag_syn0 = np_memmap(
-                self.mapfile_path + '.doctag_syn0', dtype=REAL, mode='w+', shape=(length, model.vector_size)
-            )
-            self.doctag_syn0_lockf = np_memmap(
-                self.mapfile_path + '.doctag_syn0_lockf', dtype=REAL, mode='w+', shape=(length,)
-            )
+            self.doctag_syn0 = np_memmap(self.mapfile_path + '.doctag_syn0', dtype=REAL, mode='w+', shape=(length, model.vector_size))
+            self.doctag_syn0_lockf = np_memmap(self.mapfile_path + '.doctag_syn0_lockf', dtype=REAL, mode='w+', shape=(length,))
             self.doctag_syn0_lockf.fill(1.0)
         else:
             self.doctag_syn0 = empty((length, model.vector_size), dtype=REAL)
@@ -492,7 +528,7 @@ class DocvecsArray(SaveLoad):
 
         for i in range(length):
             # construct deterministic seed from index AND model seed
-            seed = "%d %s" % (model.seed, self.index_to_doctag(i))
+            seed = '%d %s' % (model.seed, self.index_to_doctag(i))
             self.doctag_syn0[i] = model.seeded_vector(seed)
 
     def init_sims(self, replace=False):
@@ -508,19 +544,17 @@ class DocvecsArray(SaveLoad):
 
         """
         if getattr(self, 'doctag_syn0norm', None) is None or replace:
-            logger.info("precomputing L2-norms of doc weight vectors")
+            logger.info('precomputing L2-norms of doc weight vectors')
             if replace:
                 for i in range(self.doctag_syn0.shape[0]):
                     self.doctag_syn0[i, :] /= sqrt((self.doctag_syn0[i, :] ** 2).sum(-1))
                 self.doctag_syn0norm = self.doctag_syn0
             else:
                 if self.mapfile_path:
-                    self.doctag_syn0norm = np_memmap(
-                        self.mapfile_path + '.doctag_syn0norm', dtype=REAL,
-                        mode='w+', shape=self.doctag_syn0.shape)
+                    self.doctag_syn0norm = np_memmap(self.mapfile_path + '.doctag_syn0norm', dtype=REAL, mode='w+', shape=self.doctag_syn0.shape)
                 else:
                     self.doctag_syn0norm = empty(self.doctag_syn0.shape, dtype=REAL)
-                np_divide(self.doctag_syn0, sqrt((self.doctag_syn0 ** 2).sum(-1))[..., newaxis], self.doctag_syn0norm)
+                np_divide(self.doctag_syn0, sqrt((self.doctag_syn0**2).sum(-1))[..., newaxis], self.doctag_syn0norm)
 
     def most_similar(self, positive=None, negative=None, topn=10, clip_start=0, clip_end=None, indexer=None):
         """
@@ -549,14 +583,8 @@ class DocvecsArray(SaveLoad):
             positive = [positive]
 
         # add weights for each doc, if not already present; default to 1.0 for positive and -1.0 for negative docs
-        positive = [
-            (doc, 1.0) if isinstance(doc, string_types + integer_types + (ndarray, integer))
-            else doc for doc in positive
-        ]
-        negative = [
-            (doc, -1.0) if isinstance(doc, string_types + integer_types + (ndarray, integer))
-            else doc for doc in negative
-        ]
+        positive = [(doc, 1.0) if isinstance(doc, string_types + integer_types + (ndarray, integer)) else doc for doc in positive]
+        negative = [(doc, -1.0) if isinstance(doc, string_types + integer_types + (ndarray, integer)) else doc for doc in negative]
 
         # compute the weighted average of all docs
         all_docs, mean = set(), []
@@ -569,7 +597,7 @@ class DocvecsArray(SaveLoad):
             else:
                 raise KeyError("doc '%s' not in trained set" % doc)
         if not mean:
-            raise ValueError("cannot compute similarity with no input")
+            raise ValueError('cannot compute similarity with no input')
         mean = matutils.unitvec(array(mean).mean(axis=0)).astype(REAL)
 
         if indexer is not None:
@@ -580,11 +608,7 @@ class DocvecsArray(SaveLoad):
             return dists
         best = matutils.argsort(dists, topn=topn + len(all_docs), reverse=True)
         # ignore (don't return) docs from the input
-        result = [
-            (self.index_to_doctag(sim + clip_start), float(dists[sim]))
-            for sim in best
-            if (sim + clip_start) not in all_docs
-        ]
+        result = [(self.index_to_doctag(sim + clip_start), float(dists[sim])) for sim in best if (sim + clip_start) not in all_docs]
         return result[:topn]
 
     def doesnt_match(self, docs):
@@ -597,9 +621,9 @@ class DocvecsArray(SaveLoad):
         self.init_sims()
 
         docs = [doc for doc in docs if doc in self.doctags or 0 <= doc < self.count]  # filter out unknowns
-        logger.debug("using docs %s", docs)
+        logger.debug('using docs %s', docs)
         if not docs:
-            raise ValueError("cannot select a doc from an empty list")
+            raise ValueError('cannot select a doc from an empty list')
         vectors = vstack(self.doctag_syn0norm[self._int_index(doc)] for doc in docs).astype(REAL)
         mean = matutils.unitvec(vectors.mean(axis=0)).astype(REAL)
         dists = dot(vectors, mean)
@@ -645,6 +669,7 @@ class Doctag(namedtuple('Doctag', 'offset, word_count, doc_count')):
     string Doctag vectors begin at index (max_rawint + 1), so the true index is
     (rawint_index + 1 + offset). See also DocvecsArray.index_to_doctag().
     """
+
     __slots__ = ()
 
     def repeat(self, word_count):
@@ -654,8 +679,20 @@ class Doctag(namedtuple('Doctag', 'offset, word_count, doc_count')):
 class Doc2Vec(Word2Vec):
     """Class for training, using and evaluating neural networks described in http://arxiv.org/pdf/1405.4053v2.pdf"""
 
-    def __init__(self, documents=None, dm_mean=None, dm=1, dbow_words=0, dm_concat=0, dm_tag_count=1,
-                 docvecs=None, docvecs_mapfile=None, comment=None, trim_rule=None, **kwargs):
+    def __init__(
+        self,
+        documents=None,
+        dm_mean=None,
+        dm=1,
+        dbow_words=0,
+        dm_concat=0,
+        dm_tag_count=1,
+        docvecs=None,
+        docvecs_mapfile=None,
+        comment=None,
+        trim_rule=None,
+        **kwargs,
+    ):
         """
         Initialize the model from an iterable of `documents`. Each document is a
         TaggedDocument object that will be used for training.
@@ -726,15 +763,9 @@ class Doc2Vec(Word2Vec):
         """
 
         if 'sentences' in kwargs:
-            raise DeprecationWarning(
-                "Parameter 'sentences' was renamed to 'documents', and will be removed in 4.0.0, "
-                "use 'documents' instead."
-            )
+            raise DeprecationWarning("Parameter 'sentences' was renamed to 'documents', and will be removed in 4.0.0, use 'documents' instead.")
 
-        super(Doc2Vec, self).__init__(
-            sg=(1 + dm) % 2,
-            null_word=dm_concat,
-            **kwargs)
+        super(Doc2Vec, self).__init__(sg=(1 + dm) % 2, null_word=dm_concat, **kwargs)
 
         self.load = call_on_class_only
 
@@ -769,7 +800,7 @@ class Doc2Vec(Word2Vec):
         if self.dm and self.dm_concat:
             # expand l1 size to match concatenated tags+words length
             self.layer1_size = (self.dm_tag_count + (2 * self.window)) * self.vector_size
-            logger.info("using concatenative %d-dimensional layer1", self.layer1_size)
+            logger.info('using concatenative %d-dimensional layer1', self.layer1_size)
         super(Doc2Vec, self).reset_weights()
         self.docvecs.reset_weights(self)
 
@@ -779,7 +810,7 @@ class Doc2Vec(Word2Vec):
         super(Doc2Vec, self).reset_from(other_model)
 
     def scan_vocab(self, documents, progress_per=10000, trim_rule=None, update=False):
-        logger.info("collecting all words and their counts")
+        logger.info('collecting all words and their counts')
         document_no = -1
         total_words = 0
         min_reduce = 1
@@ -791,16 +822,18 @@ class Doc2Vec(Word2Vec):
             if not checked_string_types:
                 if isinstance(document.words, string_types):
                     logger.warning(
-                        "Each 'words' should be a list of words (usually unicode strings). "
-                        "First 'words' here is instead plain %s.",
-                        type(document.words)
+                        "Each 'words' should be a list of words (usually unicode strings). First 'words' here is instead plain %s.", type(document.words)
                     )
                 checked_string_types += 1
             if document_no % progress_per == 0:
                 interval_rate = (total_words - interval_count) / (default_timer() - interval_start)
                 logger.info(
-                    "PROGRESS: at example #%i, processed %i words (%i/s), %i word types, %i tags",
-                    document_no, total_words, interval_rate, len(vocab), len(self.docvecs)
+                    'PROGRESS: at example #%i, processed %i words (%i/s), %i word types, %i tags',
+                    document_no,
+                    total_words,
+                    interval_rate,
+                    len(vocab),
+                    len(self.docvecs),
                 )
                 interval_start = default_timer()
                 interval_count = total_words
@@ -818,8 +851,7 @@ class Doc2Vec(Word2Vec):
                 min_reduce += 1
 
         logger.info(
-            "collected %i word types and %i unique tags from a corpus of %i examples and %i words",
-            len(vocab), len(self.docvecs), document_no + 1, total_words
+            'collected %i word types and %i unique tags from a corpus of %i examples and %i words', len(vocab), len(self.docvecs), document_no + 1, total_words
         )
         self.corpus_count = document_no + 1
         self.raw_vocab = vocab
@@ -832,19 +864,12 @@ class Doc2Vec(Word2Vec):
             doctag_indexes, doctag_vectors, doctag_locks, ignored = indexed_doctags
             if self.sg:
                 tally += train_document_dbow(
-                    self, doc.words, doctag_indexes, alpha, work, train_words=self.dbow_words,
-                    doctag_vectors=doctag_vectors, doctag_locks=doctag_locks
+                    self, doc.words, doctag_indexes, alpha, work, train_words=self.dbow_words, doctag_vectors=doctag_vectors, doctag_locks=doctag_locks
                 )
             elif self.dm_concat:
-                tally += train_document_dm_concat(
-                    self, doc.words, doctag_indexes, alpha, work, neu1,
-                    doctag_vectors=doctag_vectors, doctag_locks=doctag_locks
-                )
+                tally += train_document_dm_concat(self, doc.words, doctag_indexes, alpha, work, neu1, doctag_vectors=doctag_vectors, doctag_locks=doctag_locks)
             else:
-                tally += train_document_dm(
-                    self, doc.words, doctag_indexes, alpha, work, neu1,
-                    doctag_vectors=doctag_vectors, doctag_locks=doctag_locks
-                )
+                tally += train_document_dm(self, doc.words, doctag_indexes, alpha, work, neu1, doctag_vectors=doctag_vectors, doctag_locks=doctag_locks)
             self.docvecs.trained_item(indexed_doctags)
         return tally, self._raw_word_count(job)
 
@@ -870,18 +895,41 @@ class Doc2Vec(Word2Vec):
         for i in range(steps):
             if self.sg:
                 train_document_dbow(
-                    self, doc_words, doctag_indexes, alpha, work,
-                    learn_words=False, learn_hidden=False, doctag_vectors=doctag_vectors, doctag_locks=doctag_locks
+                    self,
+                    doc_words,
+                    doctag_indexes,
+                    alpha,
+                    work,
+                    learn_words=False,
+                    learn_hidden=False,
+                    doctag_vectors=doctag_vectors,
+                    doctag_locks=doctag_locks,
                 )
             elif self.dm_concat:
                 train_document_dm_concat(
-                    self, doc_words, doctag_indexes, alpha, work, neu1,
-                    learn_words=False, learn_hidden=False, doctag_vectors=doctag_vectors, doctag_locks=doctag_locks
+                    self,
+                    doc_words,
+                    doctag_indexes,
+                    alpha,
+                    work,
+                    neu1,
+                    learn_words=False,
+                    learn_hidden=False,
+                    doctag_vectors=doctag_vectors,
+                    doctag_locks=doctag_locks,
                 )
             else:
                 train_document_dm(
-                    self, doc_words, doctag_indexes, alpha, work, neu1,
-                    learn_words=False, learn_hidden=False, doctag_vectors=doctag_vectors, doctag_locks=doctag_locks
+                    self,
+                    doc_words,
+                    doctag_indexes,
+                    alpha,
+                    work,
+                    neu1,
+                    learn_words=False,
+                    learn_hidden=False,
+                    doctag_vectors=doctag_vectors,
+                    doctag_locks=doctag_locks,
                 )
             alpha = ((alpha - min_alpha) / (steps - i)) + min_alpha
 
@@ -968,16 +1016,16 @@ class Doc2Vec(Word2Vec):
             with utils.open(fname, 'ab') as fout:
                 if not word_vec:
                     total_vec = len(self.docvecs)
-                    logger.info("storing %sx%s projection weights into %s", total_vec, self.vector_size, fname)
-                    fout.write(utils.to_utf8("%s %s\n" % (total_vec, self.vector_size)))
+                    logger.info('storing %sx%s projection weights into %s', total_vec, self.vector_size, fname)
+                    fout.write(utils.to_utf8('%s %s\n' % (total_vec, self.vector_size)))
                 # store as in input order
                 for i in range(len(self.docvecs)):
-                    doctag = u"%s%s" % (prefix, self.docvecs.index_to_doctag(i))
+                    doctag = '%s%s' % (prefix, self.docvecs.index_to_doctag(i))
                     row = self.docvecs.doctag_syn0[i]
                     if binary:
-                        fout.write(utils.to_utf8(doctag) + b" " + row.tostring())
+                        fout.write(utils.to_utf8(doctag) + b' ' + row.tostring())
                     else:
-                        fout.write(utils.to_utf8("%s %s\n" % (doctag, ' '.join("%f" % val for val in row))))
+                        fout.write(utils.to_utf8('%s %s\n' % (doctag, ' '.join('%f' % val for val in row))))
 
 
 class TaggedBrownCorpus(object):
@@ -999,7 +1047,7 @@ class TaggedBrownCorpus(object):
                     # each token is WORD/POS_TAG
                     token_tags = [t.split('/') for t in line.split() if len(t.split('/')) == 2]
                     # ignore words with non-alphabetic tags like ",", "!" etc (punctuation, weird stuff)
-                    words = ["%s/%s" % (token.lower(), tag[:2]) for token, tag in token_tags if tag[:2].isalpha()]
+                    words = ['%s/%s' % (token.lower(), tag[:2]) for token, tag in token_tags if tag[:2].isalpha()]
                     if not words:  # don't bother sending out empty documents
                         continue
                     yield TaggedDocument(words, ['%s_SENT_%s' % (fname, item_no)])

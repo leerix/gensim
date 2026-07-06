@@ -8,23 +8,22 @@
 Automated tests for checking transformation algorithms (the models package).
 """
 
-
-from __future__ import with_statement, division
+from __future__ import division, with_statement
 
 import logging
-import unittest
 import os
-import six
-
-from six.moves import zip, range
+import unittest
 from collections import namedtuple
-from testfixtures import log_capture
 
 import numpy as np
+import six
+from six.moves import range, zip
+from testfixtures import log_capture
 
 from gensim import utils
 from gensim.models import doc2vec, keyedvectors
-from gensim.test.utils import datapath, get_tmpfile, temporary_file, common_texts as raw_sentences
+from gensim.test.utils import common_texts as raw_sentences
+from gensim.test.utils import datapath, get_tmpfile, temporary_file
 
 
 class DocsLeeCorpus(object):
@@ -34,7 +33,7 @@ class DocsLeeCorpus(object):
 
     def _tag(self, i):
         if self.unicode_tags:
-            return u'_\xa1_%d' % i
+            return '_\xa1_%d' % i
         elif self.string_tags:
             return '_*%d' % i
         return i
@@ -72,7 +71,7 @@ class TestDoc2VecModel(unittest.TestCase):
         model.save(tmpf)
         self.models_equal(model, doc2vec.Doc2Vec.load(tmpf))
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "corpus_file training is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'corpus_file training is not supported on Windows + Py27')
     def test_persistence_fromfile(self):
         """Test storing/loading the entire model."""
         with temporary_file(get_tmpfile('gensim_word2vec.tst')) as corpus_file:
@@ -112,11 +111,11 @@ class TestDoc2VecModel(unittest.TestCase):
         self.assertTrue(len(model.wv.index2word) == 3955)
         self.assertIsNone(model.corpus_total_words)
         self.assertTrue(model.trainables.syn1neg.shape == (len(model.wv.vocab), model.vector_size))
-        self.assertTrue(model.trainables.vectors_lockf.shape == (3955, ))
-        self.assertTrue(model.vocabulary.cum_table.shape == (3955, ))
+        self.assertTrue(model.trainables.vectors_lockf.shape == (3955,))
+        self.assertTrue(model.vocabulary.cum_table.shape == (3955,))
 
         self.assertTrue(model.docvecs.vectors_docs.shape == (300, 100))
-        self.assertTrue(model.trainables.vectors_docs_lockf.shape == (300, ))
+        self.assertTrue(model.trainables.vectors_docs_lockf.shape == (300,))
         self.assertTrue(model.docvecs.max_rawint == 299)
         self.assertTrue(model.docvecs.count == 300)
 
@@ -130,11 +129,11 @@ class TestDoc2VecModel(unittest.TestCase):
         self.assertTrue(len(model.wv.index2word) == 3955)
         self.assertIsNone(model.corpus_total_words)
         self.assertTrue(model.trainables.syn1neg.shape == (len(model.wv.vocab), model.vector_size))
-        self.assertTrue(model.trainables.vectors_lockf.shape == (3955, ))
-        self.assertTrue(model.vocabulary.cum_table.shape == (3955, ))
+        self.assertTrue(model.trainables.vectors_lockf.shape == (3955,))
+        self.assertTrue(model.vocabulary.cum_table.shape == (3955,))
 
         self.assertTrue(model.docvecs.vectors_docs.shape == (300, 100))
-        self.assertTrue(model.trainables.vectors_docs_lockf.shape == (300, ))
+        self.assertTrue(model.trainables.vectors_docs_lockf.shape == (300,))
         self.assertTrue(model.docvecs.max_rawint == 299)
         self.assertTrue(model.docvecs.count == 300)
 
@@ -147,10 +146,27 @@ class TestDoc2VecModel(unittest.TestCase):
 
         # Test loading doc2vec models from all previous versions
         old_versions = [
-            '0.12.0', '0.12.1', '0.12.2', '0.12.3', '0.12.4',
-            '0.13.0', '0.13.1', '0.13.2', '0.13.3', '0.13.4',
-            '1.0.0', '1.0.1', '2.0.0', '2.1.0', '2.2.0', '2.3.0',
-            '3.0.0', '3.1.0', '3.2.0', '3.3.0', '3.4.0'
+            '0.12.0',
+            '0.12.1',
+            '0.12.2',
+            '0.12.3',
+            '0.12.4',
+            '0.13.0',
+            '0.13.1',
+            '0.13.2',
+            '0.13.3',
+            '0.13.4',
+            '1.0.0',
+            '1.0.1',
+            '2.0.0',
+            '2.1.0',
+            '2.2.0',
+            '2.3.0',
+            '3.0.0',
+            '3.1.0',
+            '3.2.0',
+            '3.3.0',
+            '3.4.0',
         ]
 
         saved_models_dir = datapath('old_d2v_models/d2v_{}.mdl')
@@ -184,7 +200,7 @@ class TestDoc2VecModel(unittest.TestCase):
         self.assertRaises(TypeError, model.train, documents=None, corpus_file=None)
         self.assertRaises(TypeError, model.train, corpus_file=sentences)
 
-    @unittest.skipIf(os.name == 'nt', "See another test for Windows below")
+    @unittest.skipIf(os.name == 'nt', 'See another test for Windows below')
     def test_get_offsets_and_start_doctags(self):
         # Each line takes 6 bytes (including '\n' character)
         lines = ['line1\n', 'line2\n', 'line3\n', 'line4\n', 'line5\n']
@@ -218,7 +234,7 @@ class TestDoc2VecModel(unittest.TestCase):
         self.assertEqual(offsets, [0, 0, 6, 12, 18, 24])
         self.assertEqual(start_doctags, [0, 0, 1, 2, 3, 4])
 
-    @unittest.skipIf(os.name != 'nt', "See another test for posix above")
+    @unittest.skipIf(os.name != 'nt', 'See another test for posix above')
     def test_get_offsets_and_start_doctags_win(self):
         # Each line takes 7 bytes (including '\n' character which is actually '\r\n' on Windows)
         lines = ['line1\n', 'line2\n', 'line3\n', 'line4\n', 'line5\n']
@@ -252,7 +268,7 @@ class TestDoc2VecModel(unittest.TestCase):
         self.assertEqual(offsets, [0, 0, 7, 14, 14, 21])
         self.assertEqual(start_doctags, [0, 0, 1, 2, 2, 3])
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "CythonLineSentence is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'CythonLineSentence is not supported on Windows + Py27')
     def test_cython_linesentence_readline_after_getting_offsets(self):
         lines = ['line1\n', 'line2\n', 'line3\n', 'line4\n', 'line5\n']
         tmpf = get_tmpfile('gensim_doc2vec.tst')
@@ -327,9 +343,7 @@ class TestDoc2VecModel(unittest.TestCase):
         self.assertTrue(all(model.docvecs['_*0'] == model.docvecs[0]))
         self.assertTrue(max(d.offset for d in model.docvecs.doctags.values()) < len(model.docvecs.doctags))
         self.assertTrue(
-            max(
-                model.docvecs._int_index(str_key, model.docvecs.doctags, model.docvecs.max_rawint)
-                for str_key in model.docvecs.doctags.keys())
+            max(model.docvecs._int_index(str_key, model.docvecs.doctags, model.docvecs.max_rawint) for str_key in model.docvecs.doctags.keys())
             < len(model.docvecs.vectors_docs)
         )
         # verify docvecs.most_similar() returns string doctags rather than indexes
@@ -350,10 +364,7 @@ class TestDoc2VecModel(unittest.TestCase):
 
         model = doc2vec.Doc2Vec(min_count=1)
         model.build_vocab(corpus)
-        self.assertTrue(
-            model.docvecs.similarity_unseen_docs(model, rome_str, rome_str)
-            > model.docvecs.similarity_unseen_docs(model, rome_str, car_str)
-        )
+        self.assertTrue(model.docvecs.similarity_unseen_docs(model, rome_str, rome_str) > model.docvecs.similarity_unseen_docs(model, rome_str, car_str))
 
     def model_sanity(self, model, keep_training=True):
         """Any non-trivial model on DocsLeeCorpus can pass these sanity checks"""
@@ -381,8 +392,7 @@ class TestDoc2VecModel(unittest.TestCase):
         self.assertTrue(np.allclose(list(zip(*sims))[1], list(zip(*sims2))[1]))  # close-enough dists
 
         # sim results should be in clip range if given
-        clip_sims = \
-            model.docvecs.most_similar(fire1, clip_start=len(model.docvecs) // 2, clip_end=len(model.docvecs) * 2 // 3)
+        clip_sims = model.docvecs.most_similar(fire1, clip_start=len(model.docvecs) // 2, clip_end=len(model.docvecs) * 2 // 3)
         sims_doc_id = [docid for docid, sim in clip_sims]
         for s_id in sims_doc_id:
             self.assertTrue(len(model.docvecs) // 2 <= s_id <= len(model.docvecs) * 2 // 3)
@@ -414,7 +424,7 @@ class TestDoc2VecModel(unittest.TestCase):
         model2 = doc2vec.Doc2Vec(corpus, vector_size=100, min_count=2, epochs=20, workers=1)
         self.models_equal(model, model2)
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "corpus_file training is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'corpus_file training is not supported on Windows + Py27')
     def test_training_fromfile(self):
         """Test doc2vec training."""
         with temporary_file(get_tmpfile('gensim_word2vec.tst')) as corpus_file:
@@ -435,7 +445,7 @@ class TestDoc2VecModel(unittest.TestCase):
         model = doc2vec.Doc2Vec(list_corpus, dm=0, hs=1, negative=0, min_count=2, epochs=20)
         self.model_sanity(model)
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "corpus_file training is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'corpus_file training is not supported on Windows + Py27')
     def test_dbow_hs_fromfile(self):
         """Test DBOW doc2vec training."""
         with temporary_file(get_tmpfile('gensim_word2vec.tst')) as corpus_file:
@@ -445,59 +455,41 @@ class TestDoc2VecModel(unittest.TestCase):
 
     def test_dmm_hs(self):
         """Test DM/mean doc2vec training."""
-        model = doc2vec.Doc2Vec(
-            list_corpus, dm=1, dm_mean=1, vector_size=24, window=4,
-            hs=1, negative=0, alpha=0.05, min_count=2, epochs=20
-        )
+        model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_mean=1, vector_size=24, window=4, hs=1, negative=0, alpha=0.05, min_count=2, epochs=20)
         self.model_sanity(model)
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "corpus_file training is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'corpus_file training is not supported on Windows + Py27')
     def test_dmm_hs_fromfile(self):
         """Test DBOW doc2vec training."""
         with temporary_file(get_tmpfile('gensim_word2vec.tst')) as corpus_file:
             save_lee_corpus_as_line_sentence(corpus_file)
-            model = doc2vec.Doc2Vec(
-                list_corpus, dm=1, dm_mean=1, vector_size=24, window=4,
-                hs=1, negative=0, alpha=0.05, min_count=2, epochs=20
-            )
+            model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_mean=1, vector_size=24, window=4, hs=1, negative=0, alpha=0.05, min_count=2, epochs=20)
             self.model_sanity(model)
 
     def test_dms_hs(self):
         """Test DM/sum doc2vec training."""
-        model = doc2vec.Doc2Vec(
-            list_corpus, dm=1, dm_mean=0, vector_size=24, window=4, hs=1,
-            negative=0, alpha=0.05, min_count=2, epochs=20
-        )
+        model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_mean=0, vector_size=24, window=4, hs=1, negative=0, alpha=0.05, min_count=2, epochs=20)
         self.model_sanity(model)
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "corpus_file training is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'corpus_file training is not supported on Windows + Py27')
     def test_dms_hs_fromfile(self):
         """Test DBOW doc2vec training."""
         with temporary_file(get_tmpfile('gensim_word2vec.tst')) as corpus_file:
             save_lee_corpus_as_line_sentence(corpus_file)
-            model = doc2vec.Doc2Vec(
-                list_corpus, dm=1, dm_mean=0, vector_size=24, window=4, hs=1,
-                negative=0, alpha=0.05, min_count=2, epochs=20
-            )
+            model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_mean=0, vector_size=24, window=4, hs=1, negative=0, alpha=0.05, min_count=2, epochs=20)
             self.model_sanity(model)
 
     def test_dmc_hs(self):
         """Test DM/concatenate doc2vec training."""
-        model = doc2vec.Doc2Vec(
-            list_corpus, dm=1, dm_concat=1, vector_size=24, window=4,
-            hs=1, negative=0, alpha=0.05, min_count=2, epochs=20
-        )
+        model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_concat=1, vector_size=24, window=4, hs=1, negative=0, alpha=0.05, min_count=2, epochs=20)
         self.model_sanity(model)
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "corpus_file training is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'corpus_file training is not supported on Windows + Py27')
     def test_dmc_hs_fromfile(self):
         """Test DBOW doc2vec training."""
         with temporary_file(get_tmpfile('gensim_word2vec.tst')) as corpus_file:
             save_lee_corpus_as_line_sentence(corpus_file)
-            model = doc2vec.Doc2Vec(
-                list_corpus, dm=1, dm_concat=1, vector_size=24, window=4,
-                hs=1, negative=0, alpha=0.05, min_count=2, epochs=20
-            )
+            model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_concat=1, vector_size=24, window=4, hs=1, negative=0, alpha=0.05, min_count=2, epochs=20)
             self.model_sanity(model)
 
     def test_dbow_neg(self):
@@ -505,7 +497,7 @@ class TestDoc2VecModel(unittest.TestCase):
         model = doc2vec.Doc2Vec(list_corpus, dm=0, hs=0, negative=10, min_count=2, epochs=20)
         self.model_sanity(model)
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "corpus_file training is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'corpus_file training is not supported on Windows + Py27')
     def test_dbow_neg_fromfile(self):
         """Test DBOW doc2vec training."""
         with temporary_file(get_tmpfile('gensim_word2vec.tst')) as corpus_file:
@@ -515,59 +507,41 @@ class TestDoc2VecModel(unittest.TestCase):
 
     def test_dmm_neg(self):
         """Test DM/mean doc2vec training."""
-        model = doc2vec.Doc2Vec(
-            list_corpus, dm=1, dm_mean=1, vector_size=24, window=4, hs=0,
-            negative=10, alpha=0.05, min_count=2, epochs=20
-        )
+        model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_mean=1, vector_size=24, window=4, hs=0, negative=10, alpha=0.05, min_count=2, epochs=20)
         self.model_sanity(model)
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "corpus_file training is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'corpus_file training is not supported on Windows + Py27')
     def test_dmm_neg_fromfile(self):
         """Test DBOW doc2vec training."""
         with temporary_file(get_tmpfile('gensim_word2vec.tst')) as corpus_file:
             save_lee_corpus_as_line_sentence(corpus_file)
-            model = doc2vec.Doc2Vec(
-                list_corpus, dm=1, dm_mean=1, vector_size=24, window=4, hs=0,
-                negative=10, alpha=0.05, min_count=2, epochs=20
-            )
+            model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_mean=1, vector_size=24, window=4, hs=0, negative=10, alpha=0.05, min_count=2, epochs=20)
             self.model_sanity(model)
 
     def test_dms_neg(self):
         """Test DM/sum doc2vec training."""
-        model = doc2vec.Doc2Vec(
-            list_corpus, dm=1, dm_mean=0, vector_size=24, window=4, hs=0,
-            negative=10, alpha=0.05, min_count=2, epochs=20
-        )
+        model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_mean=0, vector_size=24, window=4, hs=0, negative=10, alpha=0.05, min_count=2, epochs=20)
         self.model_sanity(model)
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "corpus_file training is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'corpus_file training is not supported on Windows + Py27')
     def test_dms_neg_fromfile(self):
         """Test DBOW doc2vec training."""
         with temporary_file(get_tmpfile('gensim_word2vec.tst')) as corpus_file:
             save_lee_corpus_as_line_sentence(corpus_file)
-            model = doc2vec.Doc2Vec(
-                list_corpus, dm=1, dm_mean=0, vector_size=24, window=4, hs=0,
-                negative=10, alpha=0.05, min_count=2, epochs=20
-            )
+            model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_mean=0, vector_size=24, window=4, hs=0, negative=10, alpha=0.05, min_count=2, epochs=20)
             self.model_sanity(model)
 
     def test_dmc_neg(self):
         """Test DM/concatenate doc2vec training."""
-        model = doc2vec.Doc2Vec(
-            list_corpus, dm=1, dm_concat=1, vector_size=24, window=4, hs=0,
-            negative=10, alpha=0.05, min_count=2, epochs=20
-        )
+        model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_concat=1, vector_size=24, window=4, hs=0, negative=10, alpha=0.05, min_count=2, epochs=20)
         self.model_sanity(model)
 
-    @unittest.skipIf(os.name == 'nt' and six.PY2, "corpus_file training is not supported on Windows + Py27")
+    @unittest.skipIf(os.name == 'nt' and six.PY2, 'corpus_file training is not supported on Windows + Py27')
     def test_dmc_neg_fromfile(self):
         """Test DBOW doc2vec training."""
         with temporary_file(get_tmpfile('gensim_word2vec.tst')) as corpus_file:
             save_lee_corpus_as_line_sentence(corpus_file)
-            model = doc2vec.Doc2Vec(
-                list_corpus, dm=1, dm_concat=1, vector_size=24, window=4, hs=0,
-                negative=10, alpha=0.05, min_count=2, epochs=20
-            )
+            model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_concat=1, vector_size=24, window=4, hs=0, negative=10, alpha=0.05, min_count=2, epochs=20)
             self.model_sanity(model)
 
     def test_parallel(self):
@@ -595,14 +569,8 @@ class TestDoc2VecModel(unittest.TestCase):
     def test_deterministic_dmc(self):
         """Test doc2vec results identical with identical RNG seed."""
         # bigger, dmc
-        model = doc2vec.Doc2Vec(
-            DocsLeeCorpus(), dm=1, dm_concat=1, vector_size=24,
-            window=4, hs=1, negative=3, seed=42, workers=1
-        )
-        model2 = doc2vec.Doc2Vec(
-            DocsLeeCorpus(), dm=1, dm_concat=1, vector_size=24,
-            window=4, hs=1, negative=3, seed=42, workers=1
-        )
+        model = doc2vec.Doc2Vec(DocsLeeCorpus(), dm=1, dm_concat=1, vector_size=24, window=4, hs=1, negative=3, seed=42, workers=1)
+        model2 = doc2vec.Doc2Vec(DocsLeeCorpus(), dm=1, dm_concat=1, vector_size=24, window=4, hs=1, negative=3, seed=42, workers=1)
         self.models_equal(model, model2)
 
     def test_mixed_tag_types(self):
@@ -643,18 +611,12 @@ class TestDoc2VecModel(unittest.TestCase):
                 self.assertTrue(not hasattr(model.trainables, 'syn0_lockf'))
                 self.assertTrue(model.docvecs and not hasattr(model.docvecs, 'vectors_docs'))
                 self.assertTrue(model.docvecs and not hasattr(model.docvecs, 'doctag_syn0_lockf'))
-        model = doc2vec.Doc2Vec(
-            list_corpus, dm=1, dm_mean=1, vector_size=24, window=4, hs=1,
-            negative=0, alpha=0.05, min_count=2, epochs=20
-        )
+        model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_mean=1, vector_size=24, window=4, hs=1, negative=0, alpha=0.05, min_count=2, epochs=20)
         model.delete_temporary_training_data(keep_doctags_vectors=True, keep_inference=True)
         self.assertTrue(model.docvecs and hasattr(model.docvecs, 'vectors_docs'))
         self.assertTrue(hasattr(model.trainables, 'syn1'))
         self.model_sanity(model, keep_training=False)
-        model = doc2vec.Doc2Vec(
-            list_corpus, dm=1, dm_mean=1, vector_size=24, window=4, hs=0,
-            negative=1, alpha=0.05, min_count=2, epochs=20
-        )
+        model = doc2vec.Doc2Vec(list_corpus, dm=1, dm_mean=1, vector_size=24, window=4, hs=0, negative=1, alpha=0.05, min_count=2, epochs=20)
         model.delete_temporary_training_data(keep_doctags_vectors=True, keep_inference=True)
         self.model_sanity(model, keep_training=False)
         self.assertTrue(hasattr(model.trainables, 'syn1neg'))
@@ -678,8 +640,7 @@ class TestDoc2VecModel(unittest.TestCase):
     @log_capture()
     def testTrainWarning(self, l):
         """Test if warning is raised if alpha rises during subsequent calls to train()"""
-        raw_sentences = [['human'],
-                         ['graph', 'trees']]
+        raw_sentences = [['human'], ['graph', 'trees']]
         sentences = [doc2vec.TaggedDocument(words, [i]) for i, words in enumerate(raw_sentences)]
         model = doc2vec.Doc2Vec(alpha=0.025, min_alpha=0.025, min_count=1, workers=8, vector_size=5)
         model.build_vocab(sentences)
@@ -695,18 +656,21 @@ class TestDoc2VecModel(unittest.TestCase):
     def testLoadOnClassError(self):
         """Test if exception is raised when loading doc2vec model on instance"""
         self.assertRaises(AttributeError, load_on_instance)
+
+
 # endclass TestDoc2VecModel
 
 
 if not hasattr(TestDoc2VecModel, 'assertLess'):
     # workaround for python 2.6
     def assertLess(self, a, b, msg=None):
-        self.assertTrue(a < b, msg="%s is not less than %s" % (a, b))
+        self.assertTrue(a < b, msg='%s is not less than %s' % (a, b))
 
-    setattr(TestDoc2VecModel, 'assertLess', assertLess)
+    TestDoc2VecModel.assertLess = assertLess
 
 
 # following code is useful for reproducing paragraph-vectors paper sentiment experiments
+
 
 class ConcatenatedDoc2Vec(object):
     """
@@ -725,7 +689,7 @@ class ConcatenatedDoc2Vec(object):
 
     def __str__(self):
         """Abbreviated name, built from submodels' names"""
-        return "+".join(str(model) for model in self.models)
+        return '+'.join(str(model) for model in self.models)
 
     @property
     def epochs(self):
@@ -758,21 +722,20 @@ def read_su_sentiment_rotten_tomatoes(dirname, lowercase=True):
     http://nlp.stanford.edu/~socherr/stanfordSentimentTreebank.zip
     has been expanded. It's not too big, so compose entirely into memory.
     """
-    logging.info("loading corpus from %s", dirname)
+    logging.info('loading corpus from %s', dirname)
 
     # many mangled chars in sentences (datasetSentences.txt)
-    chars_sst_mangled = [
-        'à', 'á', 'â', 'ã', 'æ', 'ç', 'è', 'é', 'í',
-        'í', 'ï', 'ñ', 'ó', 'ô', 'ö', 'û', 'ü'
-    ]
+    chars_sst_mangled = ['à', 'á', 'â', 'ã', 'æ', 'ç', 'è', 'é', 'í', 'í', 'ï', 'ñ', 'ó', 'ô', 'ö', 'û', 'ü']
     sentence_fixups = [(char.encode('utf-8').decode('latin1'), char) for char in chars_sst_mangled]
     # more junk, and the replace necessary for sentence-phrase consistency
-    sentence_fixups.extend([
-        ('Â', ''),
-        ('\xa0', ' '),
-        ('-LRB-', '('),
-        ('-RRB-', ')'),
-    ])
+    sentence_fixups.extend(
+        [
+            ('Â', ''),
+            ('\xa0', ' '),
+            ('-LRB-', '('),
+            ('-RRB-', ')'),
+        ]
+    )
     # only this junk in phrases (dictionary.txt)
     phrase_fixups = [('\xa0', ' ')]
 
@@ -780,20 +743,19 @@ def read_su_sentiment_rotten_tomatoes(dirname, lowercase=True):
 
     # read sentences to temp {sentence -> (id,split) dict, to correlate with dictionary.txt
     info_by_sentence = {}
-    with open(os.path.join(dirname, 'datasetSentences.txt'), 'r') as sentences:
-        with open(os.path.join(dirname, 'datasetSplit.txt'), 'r') as splits:
-            next(sentences)  # legend
-            next(splits)     # legend
-            for sentence_line, split_line in zip(sentences, splits):
-                (id, text) = sentence_line.split('\t')
-                id = int(id)
-                text = text.rstrip()
-                for junk, fix in sentence_fixups:
-                    text = text.replace(junk, fix)
-                (id2, split_i) = split_line.split(',')
-                assert id == int(id2)
-                if text not in info_by_sentence:    # discard duplicates
-                    info_by_sentence[text] = (id, int(split_i))
+    with open(os.path.join(dirname, 'datasetSentences.txt'), 'r') as sentences, open(os.path.join(dirname, 'datasetSplit.txt'), 'r') as splits:
+        next(sentences)  # legend
+        next(splits)  # legend
+        for sentence_line, split_line in zip(sentences, splits):
+            (id, text) = sentence_line.split('\t')
+            id = int(id)
+            text = text.rstrip()
+            for junk, fix in sentence_fixups:
+                text = text.replace(junk, fix)
+            (id2, split_i) = split_line.split(',')
+            assert id == int(id2)
+            if text not in info_by_sentence:  # discard duplicates
+                info_by_sentence[text] = (id, int(split_i))
 
     # read all phrase text
     phrases = [None] * 239232  # known size of phrases
@@ -826,10 +788,7 @@ def read_su_sentiment_rotten_tomatoes(dirname, lowercase=True):
     assert sum(1 for phrase in phrases if phrase.split == 'test') == 2210  # 'test'
     assert sum(1 for phrase in phrases if phrase.split == 'dev') == 1100  # 'dev'
 
-    logging.info(
-        "loaded corpus with %i sentences and %i phrases from %s",
-        len(info_by_sentence), len(phrases), dirname
-    )
+    logging.info('loaded corpus with %i sentences and %i phrases from %s', len(info_by_sentence), len(phrases), dirname)
 
     return phrases
 
