@@ -23,9 +23,13 @@ Also, please check the [Gensim FAQ](https://github.com/RaRe-Technologies/gensim/
    - If `tox` is not on your path: `pip install tox`
    - Check it for PEP8: `tox -e flake8`
    - Build its documentation (works only for MacOS/Linux): `tox -e docs` (documentation stored in `docs/src/_build`)
-   - Run unit tests: `tox -e py{version}-{os}`, for example `tox -e py35-linux` or `tox -e py36-win` where
+   - Run unit tests: `tox -e py{version}-{os}` where:
       - `{version}` is one of `35`, `36`
       - `{os}` is either `win` or `linux`
+      - for example:
+         - `tox -e py35-linux`
+         - `tox -e py36-win`
+         - `tox -e py39-mac`
 7. Add files, commit and push: `git add ... ; git commit -m "my commit message"; git push origin my-feature`
 8. [Create a PR](https://help.github.com/articles/creating-a-pull-request/) on Github. Write a **clear description** for your PR, including all the context and relevant information, such as:
    - The issue that you fixed, e.g. `Fixes #123`
