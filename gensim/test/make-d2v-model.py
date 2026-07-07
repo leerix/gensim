@@ -83,7 +83,7 @@ def make_and_save_model(options):
 
 
 def make_d2v_model(options):
-    if options.large:
+    if options.lee:
         make_and_save_model_lee(options)
     else:
         make_and_save_model(options)
@@ -95,10 +95,10 @@ def parse_args(argv):
         description='Makes a d2v model with the current version of gensim and saves it to the test data directory',
     )
     parser.add_argument(
-        '--large',
+        '--lee',
         default=False,
         action='store_true',
-        help='Create a large model',
+        help='Create a model from the Lee corpus',
     )
     parser.add_argument(
         '--overwrite',
