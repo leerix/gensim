@@ -1,7 +1,13 @@
+# Pera People Science Notes
+
+This is a modification of gensim 3.8.3 to support Python 3.9 and Poetry and update (as much as possible) the dependencies.
+
+See [README-3.8.3.md](README-3.8.3.md) for details.
+
+Our modified version of gensim-4.4.0 can be found here <https://github.com/leerix/gensim-4>
+
 gensim – Topic Modelling in Python
 ==================================
-
-This is a modification of gensim 3.8.3. See [README-3.8.3.md](README-3.8.3.md) for details.
 
 <!--
 The following image URLs are obfuscated = proxied and cached through
