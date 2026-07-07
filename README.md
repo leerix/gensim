@@ -1,7 +1,7 @@
 gensim – Topic Modelling in Python
 ==================================
 
-This is standard gensim 3.8.3 but with a little hack to get the install to work with poetry.
+This is a modification of gensim 3.8.3. See [README-3.8.3.md](README-3.8.3.md) for details.
 
 <!--
 The following image URLs are obfuscated = proxied and cached through
@@ -31,21 +31,21 @@ See [here](HACKTOBERFEST.md) for details.
 Features
 --------
 
--   All algorithms are **memory-independent** w.r.t. the corpus size
+- All algorithms are **memory-independent** w.r.t. the corpus size
     (can process input larger than RAM, streamed, out-of-core),
--   **Intuitive interfaces**
-    -   easy to plug in your own input corpus/datastream (trivial
+- **Intuitive interfaces**
+  - easy to plug in your own input corpus/datastream (trivial
         streaming API)
-    -   easy to extend with other Vector Space algorithms (trivial
+  - easy to extend with other Vector Space algorithms (trivial
         transformation API)
--   Efficient multicore implementations of popular algorithms, such as
+- Efficient multicore implementations of popular algorithms, such as
     online **Latent Semantic Analysis (LSA/LSI/SVD)**, **Latent
     Dirichlet Allocation (LDA)**, **Random Projections (RP)**,
     **Hierarchical Dirichlet Process (HDP)** or **word2vec deep
     learning**.
--   **Distributed computing**: can run *Latent Semantic Analysis* and
+- **Distributed computing**: can run *Latent Semantic Analysis* and
     *Latent Dirichlet Allocation* on a cluster of computers.
--   Extensive [documentation and Jupyter Notebook tutorials].
+- Extensive [documentation and Jupyter Notebook tutorials].
 
 If this feature list left you scratching your head, you can first read
 more about the [Vector Space Model] and [unsupervised document analysis]
@@ -100,13 +100,12 @@ something bolted on as an afterthought.
 Documentation
 -------------
 
--   [QuickStart]
--   [Tutorials]
--   [Official API Documentation]
+- [QuickStart]
+- [Tutorials]
+- [Official API Documentation]
 
   [QuickStart]: https://radimrehurek.com/gensim/auto_examples/core/run_core_concepts.html
   [Tutorials]: https://radimrehurek.com/gensim/auto_examples/
-  [Official Documentation and Walkthrough]: http://radimrehurek.com/gensim/
   [Official API Documentation]: http://radimrehurek.com/gensim/apiref.html
 
 Support
@@ -164,14 +163,7 @@ BibTeX entry:
 
   [citing gensim in academic papers and theses]: https://scholar.google.com/citations?view_op=view_citation&hl=en&user=9vG_kV0AAAAJ&citation_for_view=9vG_kV0AAAAJ:NaGl4SEjCO4C
 
-  [Travis CI for automated testing]: https://travis-ci.org/RaRe-Technologies/gensim
   [design goals]: http://radimrehurek.com/gensim/about.html
-  [RaRe Technologies]: http://rare-technologies.com/wp-content/uploads/2016/02/rare_image_only.png%20=10x20
-  [rare\_tech]: //rare-technologies.com
-  [Talentpair]: https://avatars3.githubusercontent.com/u/8418395?v=3&s=100
-  [citing gensim in academic papers and theses]: https://scholar.google.cz/citations?view_op=view_citation&hl=en&user=9vG_kV0AAAAJ&citation_for_view=9vG_kV0AAAAJ:u-x6o8ySG0sC
-
-
 
   [documentation and Jupyter Notebook tutorials]: https://github.com/RaRe-Technologies/gensim/#documentation
   [Vector Space Model]: http://en.wikipedia.org/wiki/Vector_space_model

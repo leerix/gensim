@@ -6,6 +6,8 @@ macOS (Apple Silicon)**. Upstream 3.8.3 predates NumPy 1.24, SciPy 1.13,
 scikit-learn 1.x, Sphinx 3+, tox 4, and modern setuptools/PEP 517, so a
 number of pins, environment tweaks, and small source fixes are needed.
 
+The install works with poetry.
+
 Nothing here changes gensim's runtime behaviour; the edits are confined to
 dependency constraints, packaging metadata, the tox/docs configuration, and
 a few compatibility shims in test and docstring code.
@@ -56,6 +58,17 @@ tox -e docs            # output lands in docs/
 - **`whitelist_externals` → `allowlist_externals`** (all four occurrences).
   tox 4.x renamed the setting; without it `make`/`rm` are disallowed and the
   `docs`/`docs-upload`/`download-wheels`/`test-pypi` envs fail.
+- **Build-isolation setuptools pinned `< 81` for the test envs**
+  (`build-constraints.txt` + `PIP_BUILD_CONSTRAINT` in the `tox.ini`
+  `[testenv]` `setenv`). Unlike the `docs` extra, the `test`/`test-win`/`test-mac`
+  extras keep `visdom` (it is needed by `test_lda_callback.py`), and pip resolves
+  it to `visdom 0.2.4`, whose `setup.py` does `import pkg_resources` at build
+  time. setuptools ≥ 81 removed `pkg_resources`, so under PEP 517 build isolation
+  the wheel build dies with `ModuleNotFoundError: No module named 'pkg_resources'`
+  before any test runs. Constraining the *build-env* setuptools below 81 (it still
+  ships `pkg_resources`) lets visdom build while staying installed. We use
+  `PIP_BUILD_CONSTRAINT` rather than `PIP_CONSTRAINT` because pip warns the latter
+  will stop affecting build environments in pip 26.2.
 
 ### Documentation build (`docs/src/conf.py`, `docs/src/gallery/README.txt`)
 
@@ -115,3 +128,12 @@ Getting `tox -e docs` to pass with Sphinx 2.4.4 on a modern toolchain required:
 The 55 skips are environment-optional dependencies (annoy, autograd,
 Mallet via `MALLET_HOME`, Vowpal Wabbit via `VOWPAL_WABBIT_PATH`) and the
 keras-backed tests (keras intentionally absent from `test-mac`).
+
+## Docker
+
+In the `docker39/` directory:
+
+- build.sh: builds a docker image
+- run.sh: runs the image with a bash shell
+
+Once it's running, run `./test-3.8.3.sh`. This runs all the commands listed in CONTRIBUTING.md.

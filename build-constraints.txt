@@ -1,0 +1,8 @@
+# Constraints applied to PEP 517 *build-isolation* environments (PIP_BUILD_CONSTRAINT),
+# not to the packages actually installed into the tox env.
+#
+# visdom 0.2.4 (the only release satisfying our `visdom >= 0.1.8, != 0.1.8.7` pin)
+# imports pkg_resources in its setup.py. setuptools >= 81 removed pkg_resources, so
+# the isolated build env fails with "ModuleNotFoundError: No module named 'pkg_resources'".
+# Pin the build-time setuptools below 81 so pkg_resources is still available.
+setuptools < 81

@@ -322,6 +322,9 @@ docs_testenv = (
         #     tightens RST parsing, surfacing pre-existing docstring warnings
         #   - the split-out sphinxcontrib-* helpers and alabaster now require
         #     Sphinx >= 5 / >= 3.4 respectively
+        #   - setuptools >= 81 removed `pkg_resources`, which Sphinx 2.4.4
+        #     imports in sphinx/registry.py (ModuleNotFoundError on startup)
+        'setuptools < 81',
         'jinja2 < 3.0',
         'markupsafe < 2.1',
         'docutils == 0.16',
