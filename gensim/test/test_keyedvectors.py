@@ -425,25 +425,25 @@ class WordEmbeddingsKeyedVectorsTest(unittest.TestCase):
 
     def test_get_keras_embedding_word_index_none(self):
         embedding_layer = self.vectors.get_keras_embedding()
-        self.assertEqual(self.vectors.vectors.shape, embedding_layer._initial_weights[0].shape)
+        self.assertEqual(self.vectors.vectors.shape, embedding_layer.get_weights()[0].shape)
         self.assertTrue(np.array_equal(
-            self.vectors['is'], embedding_layer._initial_weights[0][self.vectors.vocab['is'].index, :]))
+            self.vectors['is'], embedding_layer.get_weights()[0][self.vectors.vocab['is'].index, :]))
 
     def test_get_keras_embedding_word_index_passed(self):
         word_index = {'is': 1, 'to': 2}
         embedding_layer = self.vectors.get_keras_embedding(word_index=word_index)
-        self.assertEqual(embedding_layer._initial_weights[0].shape, (3, self.vectors.vectors.shape[1]))
+        self.assertEqual(embedding_layer.get_weights()[0].shape, (3, self.vectors.vectors.shape[1]))
         self.assertTrue(np.array_equal(
-            self.vectors['is'], embedding_layer._initial_weights[0][1, :]))
+            self.vectors['is'], embedding_layer.get_weights()[0][1, :]))
 
     @patch('numpy.random.normal')
     def test_get_keras_embedding_word_index_passed_with_oov_word(self, normal_func):
         normal_func.return_value = np.zeros((3, self.vectors.vectors.shape[1]))
         word_index = {'is': 1, 'not_a_real_word': 2}
         embedding_layer = self.vectors.get_keras_embedding(word_index=word_index)
-        self.assertEqual(embedding_layer._initial_weights[0].shape, (3, self.vectors.vectors.shape[1]))
+        self.assertEqual(embedding_layer.get_weights()[0].shape, (3, self.vectors.vectors.shape[1]))
         self.assertTrue(
-            np.array_equal(embedding_layer._initial_weights[0][2, :], np.zeros(self.vectors.vectors.shape[1])))
+            np.array_equal(embedding_layer.get_weights()[0][2, :], np.zeros(self.vectors.vectors.shape[1])))
 
 
 if __name__ == '__main__':

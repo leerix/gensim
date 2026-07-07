@@ -107,6 +107,15 @@ Getting `tox -e docs` to pass with Sphinx 2.4.4 on a modern toolchain required:
   instead of a fixed `time.sleep(3)` before asserting, and **skip** if the
   visdom server never becomes reachable. Spawn the server with `sys.executable`.
   The old fixed delay was too short for a modern visdom server to boot.
+- **`gensim/test/test_keyedvectors.py`**: in `WordEmbeddingsKeyedVectorsTest`,
+  read the embedding layer's weights via the public `embedding_layer.get_weights()[0]`
+  instead of the private `embedding_layer._initial_weights[0]`. Keras 3 (tested
+  with keras 3.10 / tensorflow 2.17) removed the internal `_initial_weights`
+  attribute, so all three `test_get_keras_embedding_*` tests raised
+  `AttributeError: 'Embedding' object has no attribute '_initial_weights'`.
+  `get_weights()[0]` returns the same matrix (verified equal to the old value),
+  and `get_keras_embedding`'s runtime behaviour — building an `Embedding` with
+  `weights=[...]` — is unchanged, so this is a test-only shim.
 
 ### Tooling and housekeeping (earlier branch commits)
 
