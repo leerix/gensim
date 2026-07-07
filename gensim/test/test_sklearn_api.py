@@ -1,3 +1,4 @@
+import sys
 import unittest
 import numpy
 import codecs
@@ -8,8 +9,19 @@ try:
     from sklearn.pipeline import Pipeline
     from sklearn import linear_model, cluster
     from sklearn.exceptions import NotFittedError
+    from sklearn.utils import Bunch
 except ImportError:
     raise unittest.SkipTest("Test requires scikit-learn to be installed, which is not available")
+
+# The `mini_newsgroup` fixture is a pickled sklearn Bunch created under the
+# `sklearn.datasets.base` module path, which was removed in scikit-learn 0.24
+# (Bunch now lives in `sklearn.utils`). Alias the old path so the fixture still
+# unpickles on modern scikit-learn.
+import types
+if 'sklearn.datasets.base' not in sys.modules:
+    _sklearn_datasets_base = types.ModuleType('sklearn.datasets.base')
+    _sklearn_datasets_base.Bunch = Bunch
+    sys.modules['sklearn.datasets.base'] = _sklearn_datasets_base
 
 from gensim.sklearn_api.ftmodel import FTTransformer
 from gensim.sklearn_api.rpmodel import RpTransformer

@@ -370,6 +370,12 @@ if sys.version_info >= (3, 7):
         'keras',
     ]
 
+# macOS test env: same as Windows (i.e. without tensorflow/keras). Modern
+# tensorflow requires numpy >= 1.25, which conflicts with our numpy < 1.24 cap
+# (see NUMPY_STR), and its wheels are painful on Apple Silicon. The keras-backed
+# tests skip when keras is absent.
+mac_testenv = win_testenv[:]
+
 #
 # smart_open >= 1.11 is py3+ only.
 # TODO: Remove the pin once we drop py2.7 from gensim too.
@@ -382,7 +388,10 @@ if PY2:
     SCIPY_STR = 'scipy <= 1.2.3'
     SO_STR = 'smart_open >= 1.8.1, < 1.11'
 else:
-    NUMPY_STR = 'numpy >= 1.11.3, < 2.0'
+    # numpy >= 1.24 removed the deprecated np.int/np.float/np.bool aliases and
+    # tightened np.stack/vstack and ragged-array creation, which gensim 3.8.3's
+    # source relies on. Cap below 1.24 to keep the codebase working unmodified.
+    NUMPY_STR = 'numpy >= 1.11.3, < 1.24'
     SCIPY_STR = 'scipy >= 0.18.1, < 1.13'
     SO_STR = 'smart_open >= 1.8.1'
 
@@ -447,6 +456,7 @@ setup(
     extras_require={
         'distributed': distributed_env,
         'test-win': win_testenv,
+        'test-mac': mac_testenv,
         'test': linux_testenv,
         'docs': docs_testenv,
     },
