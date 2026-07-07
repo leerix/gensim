@@ -49,6 +49,7 @@
 *.tar
 *.zip
 *~
+/.claude/
 /build/
 /dist/
 cython_debug
